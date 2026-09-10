@@ -8,8 +8,8 @@
    ======================================================================== */
 
 @theme {
-  /* 手寫感字體：中文用「芝麻黑」，西文數字用 Shantell Sans，最後退回系統字體 */
-  --font-hand: 'Shantell Sans', 'Zhi Mang Xing', 'cursive', system-ui, sans-serif;
+  /* 手寫感字體之後再導入（需求第 6 節），現階段先用系統預設字體 */
+  --font-hand: system-ui, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
 
   --color-ink: #111111;
   --color-paper: #fafaf7;

@@ -16,15 +16,19 @@
 | 影像運算 | 原生 Canvas `ImageData`，不引入 OpenCV / AI |
 | 打包 | JSZip |
 | 通知 | `@pieda/core` 的 `useNotify` |
+| 輸出 | `vite-plugin-singlefile`：build 產出單一 HTML，可直接雙擊開啟 |
 
 ## 開發指令
 
 ```bash
 npm install      # 安裝依賴（@pieda/core 需私有 registry 權限）
 npm run dev      # 開發伺服器
-npm run build    # 型別檢查 + 產出 dist/
+npm run build    # 型別檢查 + 產出 dist/index.html（單一檔，可直接雙擊開啟）
 npm run preview  # 本機預覽 dist/
 ```
+
+建置後把 `dist/index.html` 傳給任何人、丟隨身碟或雙擊開啟都能運作，
+不需要伺服器、不需要網路（`dist/favicon.svg` 只是分頁圖示，缺了也不影響功能）。
 
 ## 目錄結構
 
