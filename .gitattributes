@@ -1,0 +1,4 @@
+# 統一以 LF 儲存文字檔，避免 Windows / macOS 團隊間的換行差異
+* text=auto eol=lf
+*.png binary
+*.svg text eol=lf

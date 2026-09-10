@@ -1,0 +1,21 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "types": ["vite/client"],
+    "allowArbitraryExtensions": true,
+
+    /* 路徑別名：與 vite.config.ts 的 resolve.alias 對應
+       TS 6 起 paths 直接相對 tsconfig 位置解析，不需再設 baseUrl */
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+}
