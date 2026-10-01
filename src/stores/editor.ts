@@ -1,5 +1,9 @@
-import { computed, ref } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
+import type { PixelBuffer } from '@/lib/pixelBuffer'
+import { cropSelection } from '@/lib/cropSelection'
+import { detectBackgroundColor } from '@/lib/detectBackgroundColor'
+import { rgbToHex } from '@/lib/color'
 import {
   createDefaultWhiteBorder,
   DEFAULT_THRESHOLD,
@@ -23,6 +27,13 @@ export const useEditorStore = defineStore('editor', () => {
   // ======== 底圖 ========
   /** 使用者上傳的合成圖，尚未上傳時為 null */
   const sourceBitmap = ref<ImageBitmap | null>(null)
+  /**
+   * 原圖的像素資料，裁切每個範圍時從這裡讀。上傳時讀一次存起來，
+   * 不必每次裁切都重新把 bitmap 畫到 canvas 上再讀出來。
+   * 用 shallowRef：整張圖可能有上千萬個數值，只需要在「換整張圖」時通知畫面，
+   * 不需要 Vue 追蹤裡面每一格的變化。
+   */
+  const sourcePixels = shallowRef<PixelBuffer | null>(null)
 
   // ======== 模式與輸出設定 ========
   /** M1 只實作手動框選，所以預設 manual */
@@ -52,7 +63,21 @@ export const useEditorStore = defineStore('editor', () => {
       isManualColor: false,
     }
     selections.value.push(created)
+    refreshBackgroundColor(created.id)
     return created
+  }
+
+  /**
+   * 針對單一範圍重新偵測背景色。新增範圍時會呼叫；之後支援調整範圍大小時也要呼叫。
+   * 使用者用滴管手動指定過的顏色不覆蓋，尊重使用者的判斷優先於演算法。
+   */
+  function refreshBackgroundColor(id: number): void {
+    const pixels = sourcePixels.value
+    const target = selections.value.find((item) => item.id === id)
+    if (!pixels || !target || target.isManualColor) return
+
+    const { image, mask } = cropSelection(pixels, target)
+    target.backgroundColor = rgbToHex(detectBackgroundColor(image, mask))
   }
 
   function removeSelection(id: number): void {
@@ -68,6 +93,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   function reset(): void {
     sourceBitmap.value = null
+    sourcePixels.value = null
     selections.value = []
     nextId.value = 1
     activeSelectionId.value = null
@@ -75,6 +101,7 @@ export const useEditorStore = defineStore('editor', () => {
 
   return {
     sourceBitmap,
+    sourcePixels,
     rangeMode,
     outputSettings,
     selections,
@@ -84,6 +111,7 @@ export const useEditorStore = defineStore('editor', () => {
     addSelection,
     removeSelection,
     updateSelection,
+    refreshBackgroundColor,
     reset,
   }
 })

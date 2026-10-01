@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { DEFAULT_THRESHOLD } from '@/types/selection'
+import type { PixelBuffer } from '@/lib/pixelBuffer'
 import { useEditorStore } from './editor'
 
 /** 每個測試都造一個全新的 rect 形狀，避免測試之間共用同一個物件互相影響 */
@@ -9,6 +10,23 @@ function makeRectShape() {
     type: 'rect' as const,
     bounds: { x: 0, y: 0, width: 100, height: 100 },
   }
+}
+
+/** 20×10 的圖：左半邊白色、右半邊黃色，模擬兩張背景色不同的貼紙並排 */
+function makeTwoToneImage(): PixelBuffer {
+  const width = 20
+  const height = 10
+  const data = new Uint8ClampedArray(width * height * 4)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4
+      data[i] = 255
+      data[i + 1] = 255
+      data[i + 2] = x < 10 ? 255 : 0
+      data[i + 3] = 255
+    }
+  }
+  return { data, width, height }
 }
 
 describe('useEditorStore', () => {
@@ -86,6 +104,37 @@ describe('useEditorStore', () => {
     store.removeSelection(second.id)
 
     expect(store.activeSelectionId).toBe(first.id)
+  })
+
+  it('有原圖時，新增範圍會自動偵測該範圍的背景色', () => {
+    const store = useEditorStore()
+    store.sourcePixels = makeTwoToneImage()
+
+    const leftRange = store.addSelection({ type: 'rect', bounds: { x: 0, y: 0, width: 10, height: 10 } })
+    const rightRange = store.addSelection({ type: 'rect', bounds: { x: 10, y: 0, width: 10, height: 10 } })
+
+    // 同一張圖上的兩個範圍，各自偵測出不同的背景色
+    expect(leftRange.backgroundColor).toBe('#ffffff')
+    expect(rightRange.backgroundColor).toBe('#ffff00')
+  })
+
+  it('沒有原圖時不偵測，背景色維持 null', () => {
+    const store = useEditorStore()
+
+    const created = store.addSelection(makeRectShape())
+
+    expect(created.backgroundColor).toBeNull()
+  })
+
+  it('手動指定過的背景色，重新偵測時不會被覆蓋', () => {
+    const store = useEditorStore()
+    store.sourcePixels = makeTwoToneImage()
+    const created = store.addSelection({ type: 'rect', bounds: { x: 0, y: 0, width: 10, height: 10 } })
+    store.updateSelection(created.id, { backgroundColor: '#123456', isManualColor: true })
+
+    store.refreshBackgroundColor(created.id)
+
+    expect(store.selections[0].backgroundColor).toBe('#123456')
   })
 
   it('reset 會清空選取並讓編號重新從 1 開始', () => {

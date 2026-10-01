@@ -1,4 +1,5 @@
 import type { RgbColor } from './color'
+import type { ShapeMask } from './cropSelection'
 import type { PixelBuffer } from './pixelBuffer'
 
 /** 顏色分桶的間距：把相近的顏色視為同一色，過濾掉圖片壓縮／抗鋸齒造成的微小色差雜訊 */
@@ -7,8 +8,8 @@ const QUANTIZE_STEP = 8
 /** 邊界像素中，眾數顏色至少要佔這個比例才信任「邊界法」，否則退回全圖直方圖備援 */
 const BORDER_CONFIDENCE_RATIO = 0.5
 
-/** 全圖直方圖備援時，先把圖縮到這個邊長以內，控制運算量 */
-const HISTOGRAM_DOWNSCALE_MAX_SIDE = 64
+/** 全圖直方圖備援時，每邊最多取樣這麼多點，控制運算量 */
+const HISTOGRAM_SAMPLE_MAX_SIDE = 64
 
 function quantizeChannel(value: number): number {
   return Math.round(value / QUANTIZE_STEP) * QUANTIZE_STEP
@@ -45,72 +46,77 @@ function findDominantColor(colors: RgbColor[]): { color: RgbColor; ratio: number
   return { color: best.sample, ratio: colors.length === 0 ? 0 : best.count / colors.length }
 }
 
-/** 收集圖片最外圍一圈（上下左右四邊）的像素顏色 */
-function collectBorderColors(image: PixelBuffer): RgbColor[] {
+/** 沒傳遮罩時視為整張圖都在形狀內 */
+function isInside(mask: ShapeMask | undefined, width: number, x: number, y: number): boolean {
+  return mask === undefined || mask[y * width + x] === 1
+}
+
+/**
+ * 判斷一個「形狀內」的像素是不是形狀的邊界：
+ * 位在圖片最外圈，或上下左右任一鄰居落在形狀外。
+ * 矩形遮罩全為 1，結果就等於圖片最外圍一圈；橢圓／套索則會沿著形狀輪廓走。
+ */
+function isBorderPixel(mask: ShapeMask | undefined, width: number, height: number, x: number, y: number): boolean {
+  if (x === 0 || y === 0 || x === width - 1 || y === height - 1) return true
+  return (
+    !isInside(mask, width, x - 1, y) ||
+    !isInside(mask, width, x + 1, y) ||
+    !isInside(mask, width, x, y - 1) ||
+    !isInside(mask, width, x, y + 1)
+  )
+}
+
+/** 收集形狀邊界一圈的像素顏色 */
+function collectBorderColors(image: PixelBuffer, mask: ShapeMask | undefined): RgbColor[] {
   const { width, height } = image
   const colors: RgbColor[] = []
 
-  for (let x = 0; x < width; x++) {
-    colors.push(readPixel(image, x, 0))
-    colors.push(readPixel(image, x, height - 1))
-  }
-  // 上下兩排已經含蓋左右兩端的角落，這裡從 1 到 height-2 避免角落重複計算
-  for (let y = 1; y < height - 1; y++) {
-    colors.push(readPixel(image, 0, y))
-    colors.push(readPixel(image, width - 1, y))
-  }
-
-  return colors
-}
-
-/** 用最近鄰取樣把圖片縮到指定邊長以內，只為了讓全圖直方圖統計的運算量可控 */
-function downscale(image: PixelBuffer, maxSide: number): PixelBuffer {
-  const scale = Math.min(1, maxSide / Math.max(image.width, image.height))
-  const width = Math.max(1, Math.round(image.width * scale))
-  const height = Math.max(1, Math.round(image.height * scale))
-  const data = new Uint8ClampedArray(width * height * 4)
-
   for (let y = 0; y < height; y++) {
-    const sourceY = Math.min(image.height - 1, Math.floor(y / scale))
     for (let x = 0; x < width; x++) {
-      const sourceX = Math.min(image.width - 1, Math.floor(x / scale))
-      const sourceIndex = (sourceY * image.width + sourceX) * 4
-      const targetIndex = (y * width + x) * 4
-      data[targetIndex] = image.data[sourceIndex]
-      data[targetIndex + 1] = image.data[sourceIndex + 1]
-      data[targetIndex + 2] = image.data[sourceIndex + 2]
-      data[targetIndex + 3] = image.data[sourceIndex + 3]
+      if (isInside(mask, width, x, y) && isBorderPixel(mask, width, height, x, y)) {
+        colors.push(readPixel(image, x, y))
+      }
     }
   }
 
-  return { data, width, height }
-}
-
-function collectAllColors(image: PixelBuffer): RgbColor[] {
-  const colors: RgbColor[] = []
-  const total = image.width * image.height
-  for (let i = 0; i < total; i++) {
-    const offset = i * 4
-    colors.push({ r: image.data[offset], g: image.data[offset + 1], b: image.data[offset + 2] })
-  }
   return colors
 }
 
 /**
- * 自動判斷合成圖的背景色（需求文件 4.4）。
- *
- * 先假設背景色會出現在圖片最外圍一圈──這對「貼紙置中排列、四周留白」的
- * 素材圖既準確又便宜。但如果剛好有插畫畫到邊緣，邊界像素會很分散、選不出
- * 明顯眾數，這時退而求其次，改看縮小後的全圖裡佔比最大的顏色──背景色的
- * 面積通常還是遠大於任何單一插畫。
+ * 每隔固定間距取樣形狀內的像素，當作全圖直方圖的統計樣本。
+ * 不需要看每個像素──背景色面積通常遠大於其他顏色，抽樣就足以看出眾數。
  */
-export function detectBackgroundColor(image: PixelBuffer): RgbColor {
-  const borderResult = findDominantColor(collectBorderColors(image))
+function sampleInsideColors(image: PixelBuffer, mask: ShapeMask | undefined): RgbColor[] {
+  const { width, height } = image
+  const step = Math.max(1, Math.ceil(Math.max(width, height) / HISTOGRAM_SAMPLE_MAX_SIDE))
+  const colors: RgbColor[] = []
+
+  for (let y = 0; y < height; y += step) {
+    for (let x = 0; x < width; x += step) {
+      if (isInside(mask, width, x, y)) colors.push(readPixel(image, x, y))
+    }
+  }
+
+  return colors
+}
+
+/**
+ * 自動判斷單一範圍的背景色（需求文件 4.6）。
+ *
+ * 先假設背景色會出現在範圍的邊界一圈──使用者框選時通常會在貼紙四周留一點空白，
+ * 這樣既準確又便宜。但如果框得太貼、裁到插畫邊緣，邊界像素會很分散、選不出
+ * 明顯眾數，這時退而求其次，改看範圍內佔比最大的顏色──背景色的面積通常還是
+ * 遠大於任何單一顏色。
+ *
+ * mask 用來排除形狀外的像素（例如橢圓外接矩形的四個角落），
+ * 那些像素不屬於這個範圍，不該參與投票。不傳則整張圖都算。
+ */
+export function detectBackgroundColor(image: PixelBuffer, mask?: ShapeMask): RgbColor {
+  const borderResult = findDominantColor(collectBorderColors(image, mask))
 
   if (borderResult.ratio >= BORDER_CONFIDENCE_RATIO) {
     return borderResult.color
   }
 
-  const downscaled = downscale(image, HISTOGRAM_DOWNSCALE_MAX_SIDE)
-  return findDominantColor(collectAllColors(downscaled)).color
+  return findDominantColor(sampleInsideColors(image, mask)).color
 }

@@ -101,3 +101,85 @@ describe('detectBackgroundColor', () => {
     expect(() => detectBackgroundColor(image)).not.toThrow()
   })
 })
+
+/** 依條件產生遮罩：condition 回傳 true 的位置為 1（形狀內） */
+function createMask(width: number, height: number, condition: (x: number, y: number) => boolean): Uint8Array {
+  const mask = new Uint8Array(width * height)
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      mask[y * width + x] = condition(x, y) ? 1 : 0
+    }
+  }
+  return mask
+}
+
+/** 把遮罩為 0 的位置全部塗成指定顏色，模擬「形狀外是別的東西」 */
+function paintOutsideMask(image: PixelBuffer, mask: Uint8Array, color: RgbColor): void {
+  for (let i = 0; i < mask.length; i++) {
+    if (mask[i] === 1) continue
+    image.data[i * 4] = color.r
+    image.data[i * 4 + 1] = color.g
+    image.data[i * 4 + 2] = color.b
+  }
+}
+
+describe('detectBackgroundColor（搭配形狀遮罩）', () => {
+  const white: RgbColor = { r: 255, g: 255, b: 255 }
+  const red: RgbColor = { r: 255, g: 0, b: 0 }
+
+  it('只看形狀的邊界，形狀外的角落不參與判斷', () => {
+    // 20×20 的圖裡放一個半徑 7 的圓：圓內白色，圓外（包含整圈外框）紅色
+    const circle = createMask(20, 20, (x, y) => (x - 9.5) ** 2 + (y - 9.5) ** 2 <= 49)
+    const image = createTestImage(20, 20, white)
+    paintOutsideMask(image, circle, red)
+
+    // 不給遮罩：外框一圈全是紅色，會誤判成紅色
+    expect(detectBackgroundColor(image)).toEqual(red)
+    // 給遮罩：沿著圓的輪廓取樣，正確判斷為白色
+    expect(detectBackgroundColor(image, circle)).toEqual(white)
+  })
+
+  it('退回直方圖時，也只統計形狀內的像素', () => {
+    const green: RgbColor = { r: 0, g: 200, b: 0 }
+    // 只有左半邊在形狀內；左半邊內部綠色，右半邊（形狀外）紅色且面積比綠色大
+    const leftHalf = createMask(40, 40, (x) => x < 20)
+    const image = createTestImage(40, 40, green)
+    paintOutsideMask(image, leftHalf, red)
+
+    // 把左半邊的形狀邊界塗成雜色，逼演算法退回直方圖
+    const palette = [
+      { r: 10, g: 10, b: 200 },
+      { r: 200, g: 200, b: 0 },
+      { r: 200, g: 0, b: 200 },
+      { r: 0, g: 200, b: 200 },
+      { r: 90, g: 90, b: 90 },
+    ]
+    let paletteIndex = 0
+    for (let y = 0; y < 40; y++) {
+      for (let x = 0; x < 20; x++) {
+        if (x !== 0 && x !== 19 && y !== 0 && y !== 39) continue
+        const color = palette[paletteIndex++ % palette.length]
+        const i = (y * 40 + x) * 4
+        image.data[i] = color.r
+        image.data[i + 1] = color.g
+        image.data[i + 2] = color.b
+      }
+    }
+
+    // 若右半邊的紅色也被統計進去，紅色（800 px）會贏過綠色（684 px）
+    expect(detectBackgroundColor(image, leftHalf)).toEqual(green)
+  })
+
+  it('遮罩全為 1 時，結果與不傳遮罩相同', () => {
+    const image = createTestImage(30, 30, white, {
+      x: 8,
+      y: 8,
+      width: 14,
+      height: 14,
+      color: red,
+    })
+    const fullMask = new Uint8Array(30 * 30).fill(1)
+
+    expect(detectBackgroundColor(image, fullMask)).toEqual(detectBackgroundColor(image))
+  })
+})
