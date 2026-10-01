@@ -92,9 +92,9 @@ function drawFrame(ctx: CanvasRenderingContext2D, bounds: Bounds, isActive: bool
 }
 
 /** 在框的左上角畫一個實心小方塊 + 編號，讓使用者對得上左側縮圖 */
-function drawLabel(ctx: CanvasRenderingContext2D, bounds: Bounds, id: number, isActive: boolean): void {
+function drawLabel(ctx: CanvasRenderingContext2D, bounds: Bounds, displayNumber: number, isActive: boolean): void {
   const display = toDisplayBounds(bounds)
-  const text = String(id)
+  const text = String(displayNumber)
   ctx.font = LABEL_FONT
   const paddingX = 5
   const labelWidth = ctx.measureText(text).width + paddingX * 2
@@ -114,13 +114,14 @@ function redrawOverlay(): void {
   if (!overlay || !ctx) return
   ctx.clearRect(0, 0, overlay.width, overlay.height)
 
-  for (const selection of editorStore.selections) {
+  editorStore.selections.forEach((selection, index) => {
     // M1 只有矩形，橢圓／套索之後的里程碑再補畫法
-    if (selection.type !== 'rect') continue
+    if (selection.type !== 'rect') return
     const isActive = selection.id === editorStore.activeSelectionId
     drawFrame(ctx, selection.bounds, isActive)
-    drawLabel(ctx, selection.bounds, selection.id, isActive)
-  }
+    // 顯示「排在第幾個」而非 id：刪除後後面的自動往前遞補，與縮圖列表、匯出檔名一致
+    drawLabel(ctx, selection.bounds, index + 1, isActive)
+  })
 
   if (dragStart.value && dragCurrent.value) {
     ctx.setLineDash([6, 4])
@@ -215,7 +216,7 @@ watch(() => [editorStore.selections, editorStore.activeSelectionId], redrawOverl
 
 <style scoped>
 .editor-canvas {
-  &__overlay {
+  .editor-canvas__overlay {
     cursor: crosshair;
     /* 觸控裝置上拖曳時，不讓瀏覽器把手勢當成捲動頁面 */
     touch-action: none;

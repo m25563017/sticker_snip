@@ -45,7 +45,10 @@ export const useEditorStore = defineStore('editor', () => {
 
   // ======== 選取範圍 ========
   const selections = ref<Selection[]>([])
-  /** 自動遞增編號來源，刪除後不回收，確保編號穩定 */
+  /**
+   * 內部識別用的 id 來源，刪除後不回收：快取、高亮、列表 key 都靠 id 認人，必須永久不變。
+   * 畫面上顯示的編號另外用「在陣列中的順序」，刪除時會往前遞補。
+   */
   const nextId = ref(1)
   /** 目前被點選的範圍，縮圖列表與畫布靠它同步高亮 */
   const activeSelectionId = ref<number | null>(null)

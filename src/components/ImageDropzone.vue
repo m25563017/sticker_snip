@@ -60,7 +60,7 @@ function handleClickZone(): void {
     border: 2px dashed #999;
     border-radius: 8px;
 
-    &--dragging {
+    &.image-dropzone--dragging {
         border-color: #111;
         background: rgba(0, 0, 0, 0.04);
     }

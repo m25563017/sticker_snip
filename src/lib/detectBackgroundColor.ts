@@ -1,6 +1,7 @@
 import type { RgbColor } from './color'
 import type { ShapeMask } from './cropSelection'
 import type { PixelBuffer } from './pixelBuffer'
+import { isInsideMask, isMaskBorder } from './shapeMask'
 
 /** 顏色分桶的間距：把相近的顏色視為同一色，過濾掉圖片壓縮／抗鋸齒造成的微小色差雜訊 */
 const QUANTIZE_STEP = 8
@@ -46,26 +47,6 @@ function findDominantColor(colors: RgbColor[]): { color: RgbColor; ratio: number
   return { color: best.sample, ratio: colors.length === 0 ? 0 : best.count / colors.length }
 }
 
-/** 沒傳遮罩時視為整張圖都在形狀內 */
-function isInside(mask: ShapeMask | undefined, width: number, x: number, y: number): boolean {
-  return mask === undefined || mask[y * width + x] === 1
-}
-
-/**
- * 判斷一個「形狀內」的像素是不是形狀的邊界：
- * 位在圖片最外圈，或上下左右任一鄰居落在形狀外。
- * 矩形遮罩全為 1，結果就等於圖片最外圍一圈；橢圓／套索則會沿著形狀輪廓走。
- */
-function isBorderPixel(mask: ShapeMask | undefined, width: number, height: number, x: number, y: number): boolean {
-  if (x === 0 || y === 0 || x === width - 1 || y === height - 1) return true
-  return (
-    !isInside(mask, width, x - 1, y) ||
-    !isInside(mask, width, x + 1, y) ||
-    !isInside(mask, width, x, y - 1) ||
-    !isInside(mask, width, x, y + 1)
-  )
-}
-
 /** 收集形狀邊界一圈的像素顏色 */
 function collectBorderColors(image: PixelBuffer, mask: ShapeMask | undefined): RgbColor[] {
   const { width, height } = image
@@ -73,7 +54,7 @@ function collectBorderColors(image: PixelBuffer, mask: ShapeMask | undefined): R
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      if (isInside(mask, width, x, y) && isBorderPixel(mask, width, height, x, y)) {
+      if (isInsideMask(mask, width, x, y) && isMaskBorder(mask, width, height, x, y)) {
         colors.push(readPixel(image, x, y))
       }
     }
@@ -93,7 +74,7 @@ function sampleInsideColors(image: PixelBuffer, mask: ShapeMask | undefined): Rg
 
   for (let y = 0; y < height; y += step) {
     for (let x = 0; x < width; x += step) {
-      if (isInside(mask, width, x, y)) colors.push(readPixel(image, x, y))
+      if (isInsideMask(mask, width, x, y)) colors.push(readPixel(image, x, y))
     }
   }
 
