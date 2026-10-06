@@ -21,6 +21,29 @@ export function imageBitmapToPixelBuffer(bitmap: ImageBitmap): PixelBuffer {
   return { data, width, height }
 }
 
+/**
+ * 把像素資料編碼成 PNG 檔。PNG 才保留得住去背後的透明度（JPG 沒有 alpha）。
+ * canvas.toBlob 是回呼式 API，這裡包成 Promise，呼叫端才能用 await 依序處理。
+ */
+export function pixelBufferToPngBlob(image: PixelBuffer): Promise<Blob> {
+  const canvas = document.createElement('canvas')
+  canvas.width = image.width
+  canvas.height = image.height
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    return Promise.reject(new Error('無法建立 2D canvas context，瀏覽器可能不支援'))
+  }
+  ctx.putImageData(new ImageData(image.data, image.width, image.height), 0, 0)
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob)
+      else reject(new Error('PNG 編碼失敗'))
+    }, 'image/png')
+  })
+}
+
 export interface ContainSize {
   width: number
   height: number
