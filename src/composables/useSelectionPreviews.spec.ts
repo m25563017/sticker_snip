@@ -70,6 +70,21 @@ describe('useSelectionPreviews', () => {
     expect(processSelection).not.toHaveBeenCalled()
   })
 
+  it('切換邊緣品質時，所有範圍都重算', async () => {
+    const editorStore = useEditorStore()
+    editorStore.sourcePixels = makeWhiteImage()
+    useSelectionPreviews()
+    editorStore.addSelection(rect(0))
+    editorStore.addSelection(rect(10))
+    await nextTick()
+    vi.mocked(processSelection).mockClear()
+
+    editorStore.outputSettings.edgeQuality = 'pixel'
+    await nextTick()
+
+    expect(processSelection).toHaveBeenCalledTimes(2)
+  })
+
   it('刪除範圍後，預覽一併移除', async () => {
     const editorStore = useEditorStore()
     editorStore.sourcePixels = makeWhiteImage()

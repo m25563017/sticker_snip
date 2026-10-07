@@ -4,15 +4,13 @@ import type { PixelBuffer } from '@/lib/pixelBuffer'
 import { cropSelection } from '@/lib/cropSelection'
 import { detectBackgroundColor } from '@/lib/detectBackgroundColor'
 import { rgbToHex } from '@/lib/color'
+import type { EdgeQuality } from '@/lib/refineEdges'
 import {
   createDefaultWhiteBorder,
   DEFAULT_THRESHOLD,
   type Selection,
   type SelectionShape,
 } from '@/types/selection'
-
-/** 去背邊緣品質（需求 4.5），對應不同羽化程度與運算量 */
-export type EdgeQuality = 'pixel' | 'smooth' | 'ultra'
 
 /** 去背範圍的產生方式（需求 4.2）：整張自動偵測，或使用者自行圈選 */
 export type RangeMode = 'auto' | 'manual'

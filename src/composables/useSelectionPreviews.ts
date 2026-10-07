@@ -3,6 +3,7 @@ import { useEditorStore } from '@/stores/editor'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
 import { processSelection } from '@/lib/processSelection'
 import type { Selection } from '@/types/selection'
+import type { EdgeQuality } from '@/lib/refineEdges'
 
 interface CacheEntry {
   key: string
@@ -14,9 +15,10 @@ interface CacheEntry {
  * 指紋沒變就代表結果不會變，可以直接沿用上次算好的，
  * 不必每次有任何範圍變動就把所有範圍重算一遍（大範圍去背一次要上百 ms）。
  */
-function processingKey(selection: Selection): string {
+function processingKey(selection: Selection, edgeQuality: EdgeQuality): string {
   const shape = selection.type === 'lasso' ? selection.points : selection.bounds
-  return JSON.stringify([selection.type, shape, selection.backgroundColor, selection.threshold])
+  // 邊緣品質是全域設定，但同樣會改變結果，切換時每個範圍都要重算
+  return JSON.stringify([selection.type, shape, selection.backgroundColor, selection.threshold, edgeQuality])
 }
 
 /**
@@ -33,7 +35,7 @@ export function useSelectionPreviews() {
 
   /**
    * watchEffect 會自動追蹤執行過程中「讀到」的響應式資料：
-   * 這裡讀了 sourcePixels、selections 陣列，以及每個範圍的 bounds／背景色／閾值，
+   * 這裡讀了 sourcePixels、邊緣品質、selections 陣列，以及每個範圍的 bounds／背景色／閾值，
    * 之後任何一個改變都會重新執行。白邊設定沒被讀到，改它就不會觸發重算。
    */
   watchEffect(() => {
@@ -44,13 +46,14 @@ export function useSelectionPreviews() {
       cachedSource = source
     }
 
+    const { edgeQuality } = editorStore.outputSettings
     const next = new Map<number, PixelBuffer>()
     if (source) {
       for (const selection of editorStore.selections) {
-        const key = processingKey(selection)
+        const key = processingKey(selection, edgeQuality)
         let entry = cache.get(selection.id)
         if (!entry || entry.key !== key) {
-          entry = { key, result: processSelection(source, selection) }
+          entry = { key, result: processSelection(source, selection, edgeQuality) }
           cache.set(selection.id, entry)
         }
         next.set(selection.id, entry.result)

@@ -46,10 +46,10 @@ export function useExport() {
     isExporting.value = true
     try {
       const zip = new JSZip()
-      const { filePrefix } = editorStore.outputSettings
+      const { filePrefix, edgeQuality } = editorStore.outputSettings
 
       for (const [index, selection] of selections.entries()) {
-        const png = await pixelBufferToPngBlob(processSelection(source, selection))
+        const png = await pixelBufferToPngBlob(processSelection(source, selection, edgeQuality))
         zip.file(buildFileName(filePrefix, index, selections.length), png)
       }
 
