@@ -30,6 +30,7 @@ function makeSelection(backgroundColor: string | null): Selection {
     backgroundColor,
     threshold: DEFAULT_THRESHOLD,
     isManualColor: false,
+    removalSeeds: [],
   }
 }
 
@@ -63,6 +64,17 @@ describe('processSelection', () => {
     // 原圖 (2,2) 對應裁切結果的 (1,1)
     expect(alphaAt(result, 1, 1)).toBe(0)
     expect(alphaAt(result, 3, 3)).toBe(255)
+  })
+
+  it('魔術棒的點以原圖座標存放，會換算成裁切後的位置', () => {
+    // 原圖 (6,6) 是紅色物件的右下角，換算到裁切結果是 (5,5)；
+    // 若忘了扣掉裁切起點 (1,1)，會點到 (6,6)——那裡是已經透明的背景，結果就不會變
+    const selection = { ...makeSelection('#ffffff'), removalSeeds: [{ x: 6, y: 6 }] }
+
+    const result = processSelection(makeSourceImage(), selection, 'pixel')
+
+    expect(alphaAt(result, 3, 3)).toBe(0)
+    expect(alphaAt(result, 5, 5)).toBe(0)
   })
 
   it('背景色尚未偵測時只裁切、不去背', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PixelBuffer } from './pixelBuffer'
-import { sampleColor } from './sampleColor'
+import { readPatch, sampleColor } from './sampleColor'
 
 function makeSolid(width: number, height: number, value: number): PixelBuffer {
   const data = new Uint8ClampedArray(width * height * 4).fill(value)
@@ -43,5 +43,41 @@ describe('sampleColor', () => {
     setGray(image, 3, 0, 90)
 
     expect(sampleColor(image, 3.4, 0, 0)).toEqual({ r: 90, g: 90, b: 90 })
+  })
+})
+
+describe('readPatch', () => {
+  /** 5×5 的圖，每格的 R 值 = y × 10 + x，用來確認取到的是哪一格 */
+  function makeNumbered(): PixelBuffer {
+    const data = new Uint8ClampedArray(5 * 5 * 4)
+    for (let y = 0; y < 5; y++) {
+      for (let x = 0; x < 5; x++) {
+        const i = (y * 5 + x) * 4
+        data[i] = y * 10 + x
+        data[i + 3] = 255
+      }
+    }
+    return { data, width: 5, height: 5 }
+  }
+
+  function redAt(patch: PixelBuffer, x: number, y: number): number {
+    return patch.data[(y * patch.width + x) * 4]
+  }
+
+  it('以游標為中心取出 (2r+1)² 的一小塊', () => {
+    const patch = readPatch(makeNumbered(), 2, 2, 1)
+
+    expect(patch.width).toBe(3)
+    expect(redAt(patch, 0, 0)).toBe(11) // 原圖 (1,1)
+    expect(redAt(patch, 1, 1)).toBe(22) // 原圖 (2,2)，正中央
+    expect(redAt(patch, 2, 2)).toBe(33) // 原圖 (3,3)
+  })
+
+  it('游標在角落時，超出圖片的部分是透明的，中心仍對準游標', () => {
+    const patch = readPatch(makeNumbered(), 0, 0, 1)
+
+    expect(patch.data[3]).toBe(0) // 左上角在圖外
+    expect(redAt(patch, 1, 1)).toBe(0) // 正中央 = 原圖 (0,0)
+    expect(patch.data[(1 * 3 + 1) * 4 + 3]).toBe(255)
   })
 })

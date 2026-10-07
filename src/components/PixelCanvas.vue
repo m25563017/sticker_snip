@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from 'vue'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
 import { containedPointToImage } from '@/lib/coordinates'
 import type { Point } from '@/types/selection'
+import PixelLoupe from '@/components/PixelLoupe.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -12,8 +13,13 @@ const props = withDefaults(
      * contain：等比放大填滿外框，適合要看清楚邊緣的檢查頁與微調彈窗。
      */
     fit?: 'shrink' | 'contain'
+    /**
+     * 有傳才會在游標旁顯示放大鏡，值為「點下去會用到的範圍半徑」
+     * （滴管取 3×3 平均 → 1，魔術棒只看一格 → 0）。
+     */
+    loupeRadius?: number
   }>(),
-  { fit: 'shrink' },
+  { fit: 'shrink', loupeRadius: undefined },
 )
 
 const emit = defineEmits<{
@@ -37,18 +43,36 @@ function draw(): void {
   canvas.getContext('2d')?.putImageData(new ImageData(data, width, height), 0, 0)
 }
 
-function handleClick(event: MouseEvent): void {
+/** 滑鼠事件 → 圖片像素座標；指在留白處回傳 null */
+function eventToImagePoint(event: MouseEvent): Point | null {
   const canvas = canvasRef.value
-  if (!canvas) return
+  if (!canvas) return null
   const rect = canvas.getBoundingClientRect()
-  const point = containedPointToImage(
+  return containedPointToImage(
     { x: event.clientX - rect.left, y: event.clientY - rect.top },
     rect.width,
     rect.height,
     props.image.width,
     props.image.height,
   )
+}
+
+function handleClick(event: MouseEvent): void {
+  const point = eventToImagePoint(event)
   if (point) emit('pick', point)
+}
+
+// ======== 放大鏡 ========
+const hover = ref<{ point: Point; clientX: number; clientY: number } | null>(null)
+
+function handlePointerMove(event: PointerEvent): void {
+  if (props.loupeRadius === undefined) return
+  const point = eventToImagePoint(event)
+  hover.value = point ? { point, clientX: event.clientX, clientY: event.clientY } : null
+}
+
+function handlePointerLeave(): void {
+  hover.value = null
 }
 
 onMounted(draw)
@@ -62,7 +86,18 @@ watch(() => props.image, draw)
     class="pixel-canvas block"
     :class="{ 'pixel-canvas--contain': props.fit === 'contain' }"
     @click="handleClick"
+    @pointermove="handlePointerMove"
+    @pointerleave="handlePointerLeave"
   ></canvas>
+  <template v-if="hover && props.loupeRadius !== undefined">
+    <PixelLoupe
+      :image="props.image"
+      :point="hover.point"
+      :client-x="hover.clientX"
+      :client-y="hover.clientY"
+      :select-radius="props.loupeRadius"
+    />
+  </template>
 </template>
 
 <style scoped>

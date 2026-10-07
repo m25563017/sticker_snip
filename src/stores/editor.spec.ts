@@ -161,6 +161,25 @@ describe('useEditorStore', () => {
     expect(store.selections[0].backgroundColor).toBe('#ffff00')
   })
 
+  it('魔術棒：新增的點四捨五入成整數像素，可以逐一復原或全部清除', () => {
+    const store = useEditorStore()
+    const created = store.addSelection(makeRectShape())
+
+    store.addRemovalSeed(created.id, { x: 10.4, y: 20.6 })
+    store.addRemovalSeed(created.id, { x: 30, y: 40 })
+    expect(store.selections[0].removalSeeds).toEqual([
+      { x: 10, y: 21 },
+      { x: 30, y: 40 },
+    ])
+
+    store.undoRemovalSeed(created.id)
+    expect(store.selections[0].removalSeeds).toEqual([{ x: 10, y: 21 }])
+
+    store.addRemovalSeed(created.id, { x: 50, y: 50 })
+    store.clearRemovalSeeds(created.id)
+    expect(store.selections[0].removalSeeds).toEqual([])
+  })
+
   it('reset 會回到框選階段', () => {
     const store = useEditorStore()
     store.stage = 'review'

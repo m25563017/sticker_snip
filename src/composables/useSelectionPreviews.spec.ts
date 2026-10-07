@@ -85,6 +85,21 @@ describe('useSelectionPreviews', () => {
     expect(processSelection).toHaveBeenCalledTimes(2)
   })
 
+  it('魔術棒點選後，只重算那個範圍', async () => {
+    const editorStore = useEditorStore()
+    editorStore.sourcePixels = makeWhiteImage()
+    useSelectionPreviews()
+    editorStore.addSelection(rect(0))
+    editorStore.addSelection(rect(10))
+    await nextTick()
+    vi.mocked(processSelection).mockClear()
+
+    editorStore.addRemovalSeed(1, { x: 3, y: 3 })
+    await nextTick()
+
+    expect(processSelection).toHaveBeenCalledTimes(1)
+  })
+
   it('刪除範圍後，預覽一併移除', async () => {
     const editorStore = useEditorStore()
     editorStore.sourcePixels = makeWhiteImage()

@@ -14,11 +14,13 @@ import { minIslandArea, removeSmallIslands } from './removeSmallIslands'
  * 背景色尚未偵測（null）時只裁切不去背，至少讓使用者看得到框到了什麼。
  */
 export function processSelection(source: PixelBuffer, selection: Selection, edgeQuality: EdgeQuality): PixelBuffer {
-  const { image, mask } = cropSelection(source, selection)
+  const { image, mask, origin } = cropSelection(source, selection)
   if (selection.backgroundColor === null) return image
 
   const backgroundColor = hexToRgb(selection.backgroundColor)
-  const removed = floodFillRemove(image, mask, backgroundColor, selection.threshold)
+  // 魔術棒的點存的是原圖座標，扣掉裁切起點才是裁切結果上的位置
+  const seeds = selection.removalSeeds.map((point) => ({ x: point.x - origin.x, y: point.y - origin.y }))
+  const removed = floodFillRemove(image, mask, backgroundColor, selection.threshold, seeds)
   // JPG 壓縮會在背景留下色差超過閾值的小色斑，flood fill 流不進去，要另外清掉
   const cleaned = removeSmallIslands(removed, minIslandArea(removed.width, removed.height))
   // 清雜點必須在邊緣處理之前：邊緣處理會讓邊緣變半透明，先做的話雜點也會被當成邊緣處理

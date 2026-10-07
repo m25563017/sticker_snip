@@ -8,6 +8,7 @@ import type { EdgeQuality } from '@/lib/refineEdges'
 import {
   createDefaultWhiteBorder,
   DEFAULT_THRESHOLD,
+  type Point,
   type Selection,
   type SelectionShape,
 } from '@/types/selection'
@@ -66,6 +67,7 @@ export const useEditorStore = defineStore('editor', () => {
       backgroundColor: null,
       threshold: DEFAULT_THRESHOLD,
       isManualColor: false,
+      removalSeeds: [],
     }
     selections.value.push(created)
     refreshBackgroundColor(created.id)
@@ -94,6 +96,24 @@ export const useEditorStore = defineStore('editor', () => {
   function resetToAutoBackgroundColor(id: number): void {
     updateSelection(id, { isManualColor: false })
     refreshBackgroundColor(id)
+  }
+
+  // ======== 魔術棒 ========
+  /** 換新陣列而非 push：快取指紋靠 JSON 比對，新陣列也讓 Vue 更確實地偵測到變化 */
+  function addRemovalSeed(id: number, point: Point): void {
+    const target = selections.value.find((item) => item.id === id)
+    if (!target) return
+    const rounded = { x: Math.round(point.x), y: Math.round(point.y) }
+    target.removalSeeds = [...target.removalSeeds, rounded]
+  }
+
+  function undoRemovalSeed(id: number): void {
+    const target = selections.value.find((item) => item.id === id)
+    if (target) target.removalSeeds = target.removalSeeds.slice(0, -1)
+  }
+
+  function clearRemovalSeeds(id: number): void {
+    updateSelection(id, { removalSeeds: [] })
   }
 
   function removeSelection(id: number): void {
@@ -132,6 +152,9 @@ export const useEditorStore = defineStore('editor', () => {
     refreshBackgroundColor,
     setManualBackgroundColor,
     resetToAutoBackgroundColor,
+    addRemovalSeed,
+    undoRemovalSeed,
+    clearRemovalSeeds,
     reset,
   }
 })

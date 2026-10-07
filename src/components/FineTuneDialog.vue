@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useDebounceFn, useEventListener } from '@vueuse/core'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useEventListener } from '@vueuse/core'
 import { useEditorStore } from '@/stores/editor'
 import { cropSelection } from '@/lib/cropSelection'
 import { rgbToHex } from '@/lib/color'
@@ -32,11 +32,27 @@ const THRESHOLD_DEBOUNCE_MS = 100
 
 const editorStore = useEditorStore()
 
-/** 範圍的原圖（去背前），讓使用者在上面點選背景取色 */
-const originalImage = computed(() => {
+// ======== 快照：打開彈窗時的設定，「還原到打開前」用 ========
+type TuningSnapshot = Pick<Selection, 'backgroundColor' | 'isManualColor' | 'threshold' | 'removalSeeds'>
+
+function takeSnapshot(source: TuningSnapshot): TuningSnapshot {
+  return {
+    backgroundColor: source.backgroundColor,
+    isManualColor: source.isManualColor,
+    threshold: source.threshold,
+    removalSeeds: source.removalSeeds.map((point) => ({ ...point })),
+  }
+}
+
+/** 只在打開時拍一次；之後的修改都是即時套用，還原時整組蓋回去 */
+const snapshot = takeSnapshot(props.selection)
+
+/** 範圍的原圖（去背前），讓使用者在上面點選背景取色；origin 用來把點選位置換回原圖座標 */
+const originalRegion = computed(() => {
   const source = editorStore.sourcePixels
-  return source ? cropSelection(source, props.selection).image : null
+  return source ? cropSelection(source, props.selection) : null
 })
+const originalImage = computed(() => originalRegion.value?.image ?? null)
 
 // ======== 背景色 ========
 function handlePickColor(point: Point): void {
@@ -47,6 +63,29 @@ function handlePickColor(point: Point): void {
 
 function handleResetColor(): void {
   editorStore.resetToAutoBackgroundColor(props.selection.id)
+}
+
+// ======== 魔術棒 ========
+/**
+ * 在去背結果上點選沒去乾淨的區塊。點到已經透明的地方不算一次操作，
+ * 否則「復原」會多出一些看不出效果的步驟，讓使用者困惑。
+ */
+function handleWandPick(point: Point): void {
+  const preview = props.preview
+  const region = originalRegion.value
+  if (!preview || !region) return
+  const index = (Math.round(point.y) * preview.width + Math.round(point.x)) * 4
+  if (preview.data[index + 3] === 0) return
+
+  editorStore.addRemovalSeed(props.selection.id, { x: point.x + region.origin.x, y: point.y + region.origin.y })
+}
+
+function handleUndoSeed(): void {
+  editorStore.undoRemovalSeed(props.selection.id)
+}
+
+function handleClearSeeds(): void {
+  editorStore.clearRemovalSeeds(props.selection.id)
 }
 
 // ======== 閾值 ========
@@ -62,14 +101,46 @@ watch(
   },
 )
 
-const commitThreshold = useDebounceFn((value: number) => {
-  editorStore.updateSelection(props.selection.id, { threshold: value })
-}, THRESHOLD_DEBOUNCE_MS)
+/**
+ * 自己管理 debounce 的計時器，而不用 useDebounceFn：
+ * 「還原」時必須能取消還沒送出的滑桿值，否則 0.1 秒後它會把剛還原的閾值又蓋掉；
+ * 關閉彈窗時則要立刻送出，不能讓最後一次調整消失。
+ */
+let pendingThreshold: number | null = null
+let thresholdTimer: ReturnType<typeof setTimeout> | undefined
+
+function flushThreshold(): void {
+  clearTimeout(thresholdTimer)
+  if (pendingThreshold === null) return
+  editorStore.updateSelection(props.selection.id, { threshold: pendingThreshold })
+  pendingThreshold = null
+}
+
+function cancelPendingThreshold(): void {
+  clearTimeout(thresholdTimer)
+  pendingThreshold = null
+}
 
 function handleThresholdInput(event: Event): void {
   const value = Number((event.target as HTMLInputElement).value)
   thresholdDraft.value = value
-  commitThreshold(value)
+  pendingThreshold = value
+  clearTimeout(thresholdTimer)
+  thresholdTimer = setTimeout(flushThreshold, THRESHOLD_DEBOUNCE_MS)
+}
+
+onBeforeUnmount(flushThreshold)
+
+// ======== 還原 ========
+const hasChanges = computed(() => {
+  const current = { ...takeSnapshot(props.selection), threshold: thresholdDraft.value }
+  return JSON.stringify(current) !== JSON.stringify(snapshot)
+})
+
+function handleRevert(): void {
+  cancelPendingThreshold()
+  editorStore.updateSelection(props.selection.id, takeSnapshot(snapshot))
+  thresholdDraft.value = snapshot.threshold
 }
 
 // ======== 關閉 ========
@@ -105,15 +176,18 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
             <figcaption class="text-sm opacity-70">原圖：點選背景處重新取色</figcaption>
             <div class="fine-tune-dialog__image fine-tune-dialog__image--pickable preview-backdrop preview-backdrop--checker">
               <template v-if="originalImage">
-                <PixelCanvas :image="originalImage" fit="contain" @pick="handlePickColor" />
+                <PixelCanvas :image="originalImage" fit="contain" :loupe-radius="1" @pick="handlePickColor" />
               </template>
             </div>
           </figure>
           <figure class="flex flex-col gap-1">
-            <figcaption class="text-sm opacity-70">去背結果</figcaption>
-            <div class="fine-tune-dialog__image preview-backdrop" :class="`preview-backdrop--${props.backdrop}`">
+            <figcaption class="text-sm opacity-70">去背結果：點選沒去乾淨的區塊（魔術棒）</figcaption>
+            <div
+              class="fine-tune-dialog__image fine-tune-dialog__image--pickable preview-backdrop"
+              :class="`preview-backdrop--${props.backdrop}`"
+            >
               <template v-if="props.preview">
-                <PixelCanvas :image="props.preview" fit="contain" />
+                <PixelCanvas :image="props.preview" fit="contain" :loupe-radius="0" @pick="handleWandPick" />
               </template>
             </div>
           </figure>
@@ -135,6 +209,28 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
           </button>
         </div>
 
+        <!-- ======== 魔術棒 ======== -->
+        <div class="flex items-center gap-3">
+          <span class="text-sm w-16">魔術棒</span>
+          <span class="text-sm">已手動去背 {{ props.selection.removalSeeds.length }} 處</span>
+          <button
+            type="button"
+            class="fine-tune-dialog__button"
+            :disabled="props.selection.removalSeeds.length === 0"
+            @click="handleUndoSeed"
+          >
+            復原上一個
+          </button>
+          <button
+            type="button"
+            class="fine-tune-dialog__button"
+            :disabled="props.selection.removalSeeds.length === 0"
+            @click="handleClearSeeds"
+          >
+            全部清除
+          </button>
+        </div>
+
         <!-- ======== 閾值 ======== -->
         <div class="flex flex-col gap-1">
           <label class="flex items-center gap-3">
@@ -152,6 +248,14 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
           </label>
           <p class="text-xs opacity-60 pl-19">數值越大，越多「接近背景色」的像素會被去除；背景沒去乾淨就調高，貼紙被吃掉就調低</p>
         </div>
+
+        <!-- ======== 底部操作：修改即時套用，這裡只提供整組還原與明確的完成 ======== -->
+        <footer class="flex items-center justify-between">
+          <button type="button" class="fine-tune-dialog__button" :disabled="!hasChanges" @click="handleRevert">
+            還原到打開前
+          </button>
+          <button type="button" class="fine-tune-dialog__done" @click="handleClose">完成</button>
+        </footer>
       </section>
     </div>
   </Teleport>
@@ -204,6 +308,17 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
     &:disabled {
       opacity: 0.4;
       cursor: not-allowed;
+    }
+  }
+
+  .fine-tune-dialog__done {
+    padding: 6px 20px;
+    color: #fff;
+    background-color: rgb(37, 99, 235);
+    border-radius: 6px;
+
+    &:hover {
+      background-color: rgb(29, 78, 216);
     }
   }
 

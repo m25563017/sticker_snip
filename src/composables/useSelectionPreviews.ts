@@ -18,7 +18,14 @@ interface CacheEntry {
 function processingKey(selection: Selection, edgeQuality: EdgeQuality): string {
   const shape = selection.type === 'lasso' ? selection.points : selection.bounds
   // 邊緣品質是全域設定，但同樣會改變結果，切換時每個範圍都要重算
-  return JSON.stringify([selection.type, shape, selection.backgroundColor, selection.threshold, edgeQuality])
+  return JSON.stringify([
+    selection.type,
+    shape,
+    selection.backgroundColor,
+    selection.threshold,
+    selection.removalSeeds,
+    edgeQuality,
+  ])
 }
 
 /**
@@ -35,7 +42,7 @@ export function useSelectionPreviews() {
 
   /**
    * watchEffect 會自動追蹤執行過程中「讀到」的響應式資料：
-   * 這裡讀了 sourcePixels、邊緣品質、selections 陣列，以及每個範圍的 bounds／背景色／閾值，
+   * 這裡讀了 sourcePixels、邊緣品質、selections 陣列，以及每個範圍的 bounds／背景色／閾值／魔術棒點，
    * 之後任何一個改變都會重新執行。白邊設定沒被讀到，改它就不會觸發重算。
    */
   watchEffect(() => {

@@ -211,3 +211,73 @@ describe('floodFillRemove', () => {
     expect(toAlphaAscii(image)).toEqual(['###', '###', '###'])
   })
 })
+
+describe('floodFillRemove（魔術棒）', () => {
+  /**
+   * 模擬氣球：兩塊被紅色輪廓包住的白色——
+   * 左邊 (2,2)~(3,3) 是氣球線之間的空隙（該去掉），右邊 (7,2)~(8,3) 是氣球上的反光（該保留）。
+   * 兩塊顏色、大小都一樣，程式無法自己分辨，只能靠使用者點選。
+   */
+  const balloons = fromAscii(
+    [
+      '..........', //
+      '.####.####',
+      '.#..#.#..#',
+      '.#..#.#..#',
+      '.####.####',
+      '..........',
+    ],
+    { '.': WHITE, '#': RED },
+  )
+
+  it('點選被包住的區塊，只去掉那一塊，其他同色的包圍區塊保留', () => {
+    const result = floodFillRemove(balloons, undefined, WHITE, 30, [{ x: 2, y: 2 }])
+
+    expect(toAlphaAscii(result)).toEqual([
+      '..........', //
+      '.####.####',
+      '.#..#.####',
+      '.#..#.####',
+      '.####.####',
+      '..........',
+    ])
+  })
+
+  it('以點到的顏色為基準：被包住的區塊和背景色差很多也能去掉', () => {
+    const GRAY: RgbColor = { r: 150, g: 150, b: 150 }
+    const image = fromAscii(
+      [
+        '.....', //
+        '.###.',
+        '.#g#.',
+        '.###.',
+        '.....',
+      ],
+      { '.': WHITE, '#': RED, g: GRAY },
+    )
+
+    const result = floodFillRemove(image, undefined, WHITE, 30, [{ x: 2, y: 2 }])
+
+    expect(toAlphaAscii(result)[2]).toBe('.#.#.')
+  })
+
+  it('點到物件本身時，會把和點到顏色相近的那一塊去掉（可由使用者復原）', () => {
+    const result = floodFillRemove(balloons, undefined, WHITE, 30, [{ x: 1, y: 1 }])
+
+    // 左邊氣球的紅色輪廓被去掉，裡面的白色因為和紅色差很多而保留
+    expect(toAlphaAscii(result)[1]).toBe('......####')
+    expect(toAlphaAscii(result)[2]).toBe('..##..####')
+  })
+
+  it('點在已經透明的地方或圖片外，不影響結果', () => {
+    const withoutSeeds = floodFillRemove(balloons, undefined, WHITE, 30)
+
+    const result = floodFillRemove(balloons, undefined, WHITE, 30, [
+      { x: 0, y: 0 },
+      { x: -5, y: 3 },
+      { x: 99, y: 99 },
+    ])
+
+    expect(toAlphaAscii(result)).toEqual(toAlphaAscii(withoutSeeds))
+  })
+})

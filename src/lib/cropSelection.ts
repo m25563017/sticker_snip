@@ -1,4 +1,4 @@
-import type { Bounds, Selection } from '@/types/selection'
+import type { Bounds, Point, Selection } from '@/types/selection'
 import type { PixelBuffer } from './pixelBuffer'
 
 /**
@@ -12,6 +12,11 @@ export type ShapeMask = Uint8Array
 export interface CroppedRegion {
   image: PixelBuffer
   mask: ShapeMask
+  /**
+   * 裁切結果的左上角在原圖上的位置。原圖座標減掉它就是裁切後的座標；
+   * 範圍超出原圖被截掉時，它和 selection.bounds 的 x/y 會不同。
+   */
+  origin: Point
 }
 
 /**
@@ -67,5 +72,6 @@ export function cropSelection(source: PixelBuffer, selection: Selection): Croppe
   return {
     image: copyPixels(source, bounds),
     mask: createShapeMask(selection, bounds.width, bounds.height),
+    origin: { x: bounds.x, y: bounds.y },
   }
 }

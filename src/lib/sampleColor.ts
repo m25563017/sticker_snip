@@ -29,3 +29,27 @@ export function sampleColor(image: PixelBuffer, x: number, y: number, radius = 1
   if (count === 0) return { r: 0, g: 0, b: 0 }
   return { r: Math.round(sumR / count), g: Math.round(sumG / count), b: Math.round(sumB / count) }
 }
+
+/**
+ * 取出以 (x, y) 為中心、邊長 2 × radius + 1 的一小塊像素，給放大鏡顯示用。
+ * 超出圖片的部分填透明，讓游標在圖片邊緣時放大鏡仍維持固定大小、中心不偏移。
+ */
+export function readPatch(image: PixelBuffer, x: number, y: number, radius: number): PixelBuffer {
+  const size = radius * 2 + 1
+  const data = new Uint8ClampedArray(size * size * 4)
+  const left = Math.round(x) - radius
+  const top = Math.round(y) - radius
+
+  for (let row = 0; row < size; row++) {
+    const sourceY = top + row
+    if (sourceY < 0 || sourceY >= image.height) continue
+    for (let column = 0; column < size; column++) {
+      const sourceX = left + column
+      if (sourceX < 0 || sourceX >= image.width) continue
+      const from = (sourceY * image.width + sourceX) * 4
+      data.set(image.data.subarray(from, from + 4), (row * size + column) * 4)
+    }
+  }
+
+  return { data, width: size, height: size }
+}

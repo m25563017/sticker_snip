@@ -30,6 +30,7 @@ function makeRectSelection(bounds: Bounds): Selection {
     backgroundColor: null,
     threshold: DEFAULT_THRESHOLD,
     isManualColor: false,
+    removalSeeds: [],
   }
 }
 
@@ -72,12 +73,13 @@ describe('cropSelection', () => {
   it('範圍超出原圖時，只裁出重疊的部分', () => {
     const source = makeCoordinateImage(10, 10)
 
-    const { image, mask } = cropSelection(
+    const { image, mask, origin } = cropSelection(
       source,
       makeRectSelection({ x: 6, y: -2, width: 10, height: 5 }),
     )
 
     // x: 6~10、y: 0~3 才是真正在圖內的部分
+    expect(origin).toEqual({ x: 6, y: 0 })
     expect(image.width).toBe(4)
     expect(image.height).toBe(3)
     expect(mask.length).toBe(12)
