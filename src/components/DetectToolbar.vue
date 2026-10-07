@@ -40,6 +40,10 @@ function handleDistanceInput(event: Event): void {
 function handleRedetect(): void {
   editorStore.autoDetect()
 }
+
+function handleClearAuto(): void {
+  editorStore.clearAutoSelections()
+}
 </script>
 
 <template>
@@ -53,9 +57,12 @@ function handleRedetect(): void {
     </label>
 
     <button type="button" class="detect-toolbar__button" @click="handleRedetect">重新偵測</button>
+    <button type="button" class="detect-toolbar__button" :disabled="autoCount === 0" @click="handleClearAuto">
+      清除自動框（改用手動）
+    </button>
 
     <p class="w-full text-xs opacity-60">
-      兩張貼紙被框在一起就調小；旁邊的小裝飾被拆成另一張就調大。重新偵測只會替換自動的框，手動畫的會保留
+      兩張貼紙被框在一起就調小；旁邊的小裝飾被拆成另一張就調大。點框可選取並拖曳控制點調整大小；調整過或手動畫的框，重新偵測時都會保留
     </p>
   </div>
 </template>
@@ -68,8 +75,13 @@ function handleRedetect(): void {
     border: 1px solid #999;
     border-radius: 6px;
 
-    &:hover {
+    &:hover:not(:disabled) {
       background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
   }
 }

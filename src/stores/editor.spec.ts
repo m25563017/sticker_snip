@@ -259,6 +259,32 @@ describe('useEditorStore', () => {
       expect(store.activeSelectionId).toBe(manual.id)
     })
 
+    it('清除自動框：只刪自動偵測的範圍，手動畫的保留', () => {
+      const store = useEditorStore()
+      store.loadImage(fakeBitmap, makeTwoStickers())
+      const manual = store.addSelection({ type: 'rect', bounds: { x: 20, y: 18, width: 10, height: 10 } })
+      store.activeSelectionId = store.selections[0].id
+
+      store.clearAutoSelections()
+
+      expect(store.selections.map((item) => item.id)).toEqual([manual.id])
+      expect(store.activeSelectionId).toBeNull()
+    })
+
+    it('調整過大小的自動範圍改為手動，重新偵測時不會被洗掉', () => {
+      const store = useEditorStore()
+      store.loadImage(fakeBitmap, makeTwoStickers())
+      const resized = store.selections[0]
+      const newBounds = { x: 2, y: 2, width: 20, height: 20 }
+
+      store.resizeSelection(resized.id, newBounds)
+      store.autoDetect()
+
+      const kept = store.selections.find((item) => item.id === resized.id)
+      expect(kept?.createdBy).toBe('manual')
+      expect(kept?.type === 'rect' && kept.bounds).toEqual(newBounds)
+    })
+
     it('高亮中的是自動範圍時，重新偵測後清掉高亮（舊範圍已被替換）', () => {
       const store = useEditorStore()
       store.loadImage(fakeBitmap, makeTwoStickers())

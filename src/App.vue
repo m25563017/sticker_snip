@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useNotify } from '@pieda/core'
 import { useEditorStore } from '@/stores/editor'
 import ImageDropzone from '@/components/ImageDropzone.vue'
 import EditorCanvas from '@/components/EditorCanvas.vue'
@@ -8,6 +9,7 @@ import DetectToolbar from '@/components/DetectToolbar.vue'
 import { useExport } from '@/composables/useExport'
 import { useSelectionPreviews } from '@/composables/useSelectionPreviews'
 
+const $notify = useNotify()
 const editorStore = useEditorStore()
 const { isExporting, exportZip } = useExport()
 /**
@@ -23,6 +25,20 @@ function handleEnterReview(): void {
 function handleBackToSelect(): void {
   editorStore.stage = 'select'
 }
+
+/** 已經有範圍時先確認：重新上傳會清掉所有框，包含手動補畫與微調的結果 */
+async function handleReupload(): Promise<void> {
+  if (editorStore.selectionCount > 0) {
+    const result = await $notify.alert({
+      title: '重新上傳',
+      message: '目前的範圍會全部清除，確定要重新上傳嗎？',
+      variant: 'warning',
+      confirm: true,
+    })
+    if (!result.isConfirmed) return
+  }
+  editorStore.reset()
+}
 </script>
 
 <template>
@@ -31,14 +47,17 @@ function handleBackToSelect(): void {
     <header class="app-shell__header flex items-center justify-between px-4 py-3">
       <h1 class="text-xl">貼紙裁切去背工具</h1>
       <template v-if="editorStore.hasImage && editorStore.stage === 'select'">
-        <button
-          type="button"
-          class="app-shell__primary"
-          :disabled="editorStore.selectionCount === 0"
-          @click="handleEnterReview"
-        >
-          預覽結果（{{ editorStore.selectionCount }} 張）
-        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" class="app-shell__secondary" @click="handleReupload">重新上傳</button>
+          <button
+            type="button"
+            class="app-shell__primary"
+            :disabled="editorStore.selectionCount === 0"
+            @click="handleEnterReview"
+          >
+            預覽結果（{{ editorStore.selectionCount }} 張）
+          </button>
+        </div>
       </template>
       <template v-if="editorStore.hasImage && editorStore.stage === 'review'">
         <div class="flex items-center gap-2">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isRectTooSmall, rectFromPoints } from './rect'
+import { findSmallestContaining, isRectTooSmall, rectFromPoints } from './rect'
 
 describe('rectFromPoints', () => {
   it('從左上拖到右下，得到正常的矩形', () => {
@@ -35,5 +35,19 @@ describe('isRectTooSmall', () => {
 
   it('剛好等於門檻時保留', () => {
     expect(isRectTooSmall({ x: 0, y: 0, width: 5, height: 5 }, 5)).toBe(false)
+  })
+})
+
+describe('findSmallestContaining', () => {
+  const big = { x: 0, y: 0, width: 100, height: 100 }
+  const small = { x: 10, y: 10, width: 20, height: 20 }
+
+  it('點在大框裡的小框內時，選小框', () => {
+    expect(findSmallestContaining([big, small], { x: 15, y: 15 })).toBe(1)
+  })
+
+  it('只在大框內時選大框，都不在時回傳 -1', () => {
+    expect(findSmallestContaining([big, small], { x: 80, y: 80 })).toBe(0)
+    expect(findSmallestContaining([big, small], { x: 200, y: 200 })).toBe(-1)
   })
 })

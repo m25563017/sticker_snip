@@ -9,6 +9,7 @@ import type { EdgeQuality } from '@/lib/refineEdges'
 import {
   createDefaultWhiteBorder,
   DEFAULT_THRESHOLD,
+  type Bounds,
   type Point,
   type Selection,
   type SelectionCreatedBy,
@@ -86,6 +87,24 @@ export const useEditorStore = defineStore('editor', () => {
       addSelection({ type: 'rect', bounds }, 'auto')
     }
     selections.value.push(...manual)
+  }
+
+  /** 改用手動圈選：清掉自動偵測的範圍，手動畫的保留。想再自動偵測時按「重新偵測」即可找回 */
+  function clearAutoSelections(): void {
+    selections.value = selections.value.filter((item) => item.createdBy === 'manual')
+    if (!selections.value.some((item) => item.id === activeSelectionId.value)) activeSelectionId.value = null
+  }
+
+  /**
+   * 拖曳控制點調整範圍大小。調整過的自動範圍改標記為手動：
+   * 使用者已經親手修正過，之後拖合併距離滑桿重新偵測時不該被洗掉。
+   */
+  function resizeSelection(id: number, bounds: Bounds): void {
+    const target = selections.value.find((item) => item.id === id)
+    if (!target || target.type === 'lasso') return
+    target.bounds = bounds
+    target.createdBy = 'manual'
+    refreshBackgroundColor(id)
   }
 
   function addSelection(shape: SelectionShape, createdBy: SelectionCreatedBy = 'manual'): Selection {
@@ -186,6 +205,8 @@ export const useEditorStore = defineStore('editor', () => {
     selectionCount,
     loadImage,
     autoDetect,
+    clearAutoSelections,
+    resizeSelection,
     addSelection,
     removeSelection,
     removeActiveSelection,
