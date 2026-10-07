@@ -215,6 +215,61 @@ describe('useEditorStore', () => {
     expect(store.selections[0].removalSeeds).toEqual([])
   })
 
+  describe('自動偵測', () => {
+    /** 60×30 白底，左右各一塊 10×10 的紅色貼紙 */
+    function makeTwoStickers(): PixelBuffer {
+      const width = 60
+      const height = 30
+      const data = new Uint8ClampedArray(width * height * 4).fill(255)
+      for (const left of [5, 40]) {
+        for (let y = 5; y < 15; y++) {
+          for (let x = left; x < left + 10; x++) {
+            const i = (y * width + x) * 4
+            data[i + 1] = 30
+            data[i + 2] = 30
+          }
+        }
+      }
+      return { data, width, height }
+    }
+    // 測試環境沒有真的 ImageBitmap；store 只把它存起來給畫布用，偵測只看像素
+    const fakeBitmap = {} as ImageBitmap
+
+    it('換新圖時依圖片大小設定合併距離，並立刻偵測出所有貼紙', () => {
+      const store = useEditorStore()
+
+      store.loadImage(fakeBitmap, makeTwoStickers())
+
+      expect(store.mergeDistance).toBe(1)
+      expect(store.selections.map((item) => item.createdBy)).toEqual(['auto', 'auto'])
+      // 每個自動偵測出的範圍也會各自偵測背景色
+      expect(store.selections[0].backgroundColor).toBe('#ffffff')
+    })
+
+    it('重新偵測只替換自動的範圍，手動畫的保留並排在後面', () => {
+      const store = useEditorStore()
+      store.loadImage(fakeBitmap, makeTwoStickers())
+      const manual = store.addSelection({ type: 'rect', bounds: { x: 20, y: 18, width: 10, height: 10 } })
+      store.activeSelectionId = manual.id
+
+      store.autoDetect()
+
+      expect(store.selections.map((item) => item.createdBy)).toEqual(['auto', 'auto', 'manual'])
+      expect(store.selections[2].id).toBe(manual.id)
+      expect(store.activeSelectionId).toBe(manual.id)
+    })
+
+    it('高亮中的是自動範圍時，重新偵測後清掉高亮（舊範圍已被替換）', () => {
+      const store = useEditorStore()
+      store.loadImage(fakeBitmap, makeTwoStickers())
+      store.activeSelectionId = store.selections[0].id
+
+      store.autoDetect()
+
+      expect(store.activeSelectionId).toBeNull()
+    })
+  })
+
   it('reset 會回到框選階段', () => {
     const store = useEditorStore()
     store.stage = 'review'

@@ -4,17 +4,16 @@ import type { PixelBuffer } from '@/lib/pixelBuffer'
 import { cropSelection } from '@/lib/cropSelection'
 import { detectBackgroundColor } from '@/lib/detectBackgroundColor'
 import { rgbToHex } from '@/lib/color'
+import { defaultMergeDistance, detectStickers } from '@/lib/detectStickers'
 import type { EdgeQuality } from '@/lib/refineEdges'
 import {
   createDefaultWhiteBorder,
   DEFAULT_THRESHOLD,
   type Point,
   type Selection,
+  type SelectionCreatedBy,
   type SelectionShape,
 } from '@/types/selection'
-
-/** 去背範圍的產生方式（需求 4.2）：整張自動偵測，或使用者自行圈選 */
-export type RangeMode = 'auto' | 'manual'
 
 /** 工作階段：先框選所有範圍，再進入檢查階段統一預覽結果、針對不滿意的微調後匯出 */
 export type EditorStage = 'select' | 'review'
@@ -39,8 +38,8 @@ export const useEditorStore = defineStore('editor', () => {
 
   // ======== 模式與輸出設定 ========
   const stage = ref<EditorStage>('select')
-  /** M1 只實作手動框選，所以預設 manual */
-  const rangeMode = ref<RangeMode>('manual')
+  /** 自動偵測時，前景像素相距多少 px 以內算同一張貼紙；換新圖時依圖片大小重設 */
+  const mergeDistance = ref(1)
   const outputSettings = ref<OutputSettings>({
     filePrefix: 'sticker_',
     edgeQuality: 'smooth',
@@ -59,10 +58,41 @@ export const useEditorStore = defineStore('editor', () => {
   const hasImage = computed(() => sourceBitmap.value !== null)
   const selectionCount = computed(() => selections.value.length)
 
-  function addSelection(shape: SelectionShape): Selection {
+  /**
+   * 換新圖：清掉舊圖的一切，依圖片大小設定合併距離，並立刻自動偵測一次。
+   * 工具的重點是自動裁切，上傳後直接看到框好的結果，不需要使用者先選模式。
+   */
+  function loadImage(bitmap: ImageBitmap, pixels: PixelBuffer): void {
+    reset()
+    sourceBitmap.value = bitmap
+    sourcePixels.value = pixels
+    mergeDistance.value = defaultMergeDistance(pixels.width, pixels.height)
+    autoDetect()
+  }
+
+  /**
+   * 整張自動偵測（需求 4.3）。重新偵測時只替換自動產生的範圍，使用者手動畫的保留，
+   * 才不會因為調一下合併距離就把辛苦補畫的範圍洗掉。
+   * 排列順序：自動偵測的依閱讀順序在前，手動的接在後面。
+   */
+  function autoDetect(): void {
+    const pixels = sourcePixels.value
+    if (!pixels) return
+
+    const manual = selections.value.filter((item) => item.createdBy === 'manual')
+    if (!manual.some((item) => item.id === activeSelectionId.value)) activeSelectionId.value = null
+    selections.value = []
+    for (const bounds of detectStickers(pixels, { mergeDistance: mergeDistance.value })) {
+      addSelection({ type: 'rect', bounds }, 'auto')
+    }
+    selections.value.push(...manual)
+  }
+
+  function addSelection(shape: SelectionShape, createdBy: SelectionCreatedBy = 'manual'): Selection {
     const created: Selection = {
       ...shape,
       id: nextId.value++,
+      createdBy,
       whiteBorder: createDefaultWhiteBorder(),
       backgroundColor: null,
       threshold: DEFAULT_THRESHOLD,
@@ -148,12 +178,14 @@ export const useEditorStore = defineStore('editor', () => {
     sourceBitmap,
     sourcePixels,
     stage,
-    rangeMode,
+    mergeDistance,
     outputSettings,
     selections,
     activeSelectionId,
     hasImage,
     selectionCount,
+    loadImage,
+    autoDetect,
     addSelection,
     removeSelection,
     removeActiveSelection,

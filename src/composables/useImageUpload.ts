@@ -3,9 +3,8 @@ import { useNotify } from "@pieda/core";
 import { useEditorStore } from "@/stores/editor";
 import { imageBitmapToPixelBuffer } from "@/lib/canvas";
 /**
- * 上傳圖片的完整流程：讀檔 → 解碼成 ImageBitmap → 讀出像素 → 寫入 store。
- * 背景色不在這裡偵測──需求 4.6 要求每個範圍各自偵測，
- * 所以改到使用者框出範圍之後才針對該範圍做。
+ * 上傳圖片的流程：讀檔 → 解碼成 ImageBitmap → 讀出像素 → 交給 store。
+ * 這裡只負責瀏覽器端的讀檔與錯誤通知；換圖後的重設與自動偵測由 store.loadImage 處理。
  */
 export function useImageUpload() {
     const $notify = useNotify();
@@ -25,11 +24,7 @@ export function useImageUpload() {
         isLoading.value = true;
         try {
             const bitmap = await createImageBitmap(file);
-            const pixels = imageBitmapToPixelBuffer(bitmap);
-            // 換新圖時，舊圖上的範圍已經沒有意義，先全部清掉
-            editorStore.reset();
-            editorStore.sourceBitmap = bitmap;
-            editorStore.sourcePixels = pixels;
+            editorStore.loadImage(bitmap, imageBitmapToPixelBuffer(bitmap));
         } catch {
             $notify.alert({
                 title: "讀取失敗",

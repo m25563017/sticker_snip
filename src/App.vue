@@ -4,6 +4,7 @@ import ImageDropzone from '@/components/ImageDropzone.vue'
 import EditorCanvas from '@/components/EditorCanvas.vue'
 import ThumbnailList from '@/components/ThumbnailList.vue'
 import ReviewGrid from '@/components/ReviewGrid.vue'
+import DetectToolbar from '@/components/DetectToolbar.vue'
 import { useExport } from '@/composables/useExport'
 import { useSelectionPreviews } from '@/composables/useSelectionPreviews'
 
@@ -56,9 +57,12 @@ function handleBackToSelect(): void {
       </template>
       <template v-else-if="editorStore.stage === 'select'">
         <ThumbnailList class="w-56 shrink-0 pt-4" :previews="previews" />
-        <!-- min-w-0：讓畫布區可以比內容窄，縮放視窗時才不會被 canvas 撐住 -->
-        <div class="flex-1 min-w-0">
-          <EditorCanvas />
+        <!-- min-w-0／min-h-0：讓畫布區可以比內容小，縮放視窗時才不會被 canvas 撐住 -->
+        <div class="flex flex-col flex-1 min-w-0">
+          <DetectToolbar />
+          <div class="flex-1 min-h-0">
+            <EditorCanvas />
+          </div>
         </div>
       </template>
       <template v-else>

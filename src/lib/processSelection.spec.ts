@@ -24,6 +24,7 @@ function makeSourceImage(): PixelBuffer {
 function makeSelection(backgroundColor: string | null): Selection {
   return {
     id: 1,
+    createdBy: 'manual',
     type: 'rect',
     bounds: { x: 1, y: 1, width: 8, height: 8 },
     whiteBorder: createDefaultWhiteBorder(),

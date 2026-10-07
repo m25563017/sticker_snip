@@ -36,8 +36,12 @@ export interface WhiteBorderConfig {
 /** 新範圍的預設閾值：顏色距離在此以內視為背景 */
 export const DEFAULT_THRESHOLD = 30
 
+/** 範圍怎麼來的：重新自動偵測時只替換 auto 的，使用者手動畫的保留 */
+export type SelectionCreatedBy = 'auto' | 'manual'
+
 interface SelectionBase {
   id: number
+  createdBy: SelectionCreatedBy
   whiteBorder: WhiteBorderConfig
   /**
    * 每個範圍各自的背景色（需求 4.6）──不同貼紙的底色可能不同，

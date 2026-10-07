@@ -24,6 +24,7 @@ function makeCoordinateImage(width: number, height: number): PixelBuffer {
 function makeRectSelection(bounds: Bounds): Selection {
   return {
     id: 1,
+    createdBy: 'manual',
     type: 'rect',
     bounds,
     whiteBorder: createDefaultWhiteBorder(),
