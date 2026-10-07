@@ -122,6 +122,14 @@ export const useEditorStore = defineStore('editor', () => {
     if (activeSelectionId.value === id) activeSelectionId.value = null
   }
 
+  /**
+   * 刪除目前高亮的範圍（框選時按右鍵）。剛畫好的範圍會自動高亮，所以畫錯可以馬上右鍵刪掉。
+   * 刪除後不自動高亮下一個：避免連按幾下右鍵就誤刪一串，要刪別的得先明確點選。
+   */
+  function removeActiveSelection(): void {
+    if (activeSelectionId.value !== null) removeSelection(activeSelectionId.value)
+  }
+
   function updateSelection(id: number, patch: Partial<Selection>): void {
     const target = selections.value.find((item) => item.id === id)
     if (target) Object.assign(target, patch)
@@ -148,6 +156,7 @@ export const useEditorStore = defineStore('editor', () => {
     selectionCount,
     addSelection,
     removeSelection,
+    removeActiveSelection,
     updateSelection,
     refreshBackgroundColor,
     setManualBackgroundColor,

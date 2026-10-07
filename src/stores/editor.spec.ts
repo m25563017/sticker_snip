@@ -85,6 +85,41 @@ describe('useEditorStore', () => {
     expect(store.selections.map((item) => item.id)).toEqual([second.id, third.id])
   })
 
+  it('右鍵刪除：刪掉目前高亮的範圍（不一定是最後畫的）', () => {
+    const store = useEditorStore()
+    store.addSelection(makeRectShape()) // id 1
+    const second = store.addSelection(makeRectShape()) // id 2
+    store.addSelection(makeRectShape()) // id 3
+    store.activeSelectionId = second.id
+
+    store.removeActiveSelection()
+
+    expect(store.selections.map((item) => item.id)).toEqual([1, 3])
+  })
+
+  it('右鍵刪除：刪除後不自動高亮下一個，再按一次不會誤刪', () => {
+    const store = useEditorStore()
+    store.addSelection(makeRectShape())
+    const second = store.addSelection(makeRectShape())
+    store.activeSelectionId = second.id
+
+    store.removeActiveSelection()
+    store.removeActiveSelection()
+
+    expect(store.activeSelectionId).toBeNull()
+    expect(store.selectionCount).toBe(1)
+  })
+
+  it('右鍵刪除：沒有高亮的範圍時不做任何事', () => {
+    const store = useEditorStore()
+    store.addSelection(makeRectShape())
+    store.activeSelectionId = null
+
+    store.removeActiveSelection()
+
+    expect(store.selectionCount).toBe(1)
+  })
+
   it('刪除高亮中的範圍時，activeSelectionId 會被清空', () => {
     const store = useEditorStore()
     const created = store.addSelection(makeRectShape())

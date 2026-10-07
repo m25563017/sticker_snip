@@ -180,6 +180,21 @@ function handlePointerUp(event: PointerEvent): void {
   // selections 改變會觸發下方 watch 重畫 overlay，這裡不用再手動呼叫
 }
 
+/**
+ * 右鍵：拖曳到一半時取消這次框選；沒在拖曳時刪除目前高亮的範圍。
+ * 用 contextmenu 事件而非 pointerdown：左鍵按住拖曳時再按右鍵，
+ * 瀏覽器不會再送一次 pointerdown（同一支滑鼠已經是「按下」狀態），只有 contextmenu 一定收得到。
+ */
+function handleContextMenu(): void {
+  if (dragStart.value) {
+    dragStart.value = null
+    dragCurrent.value = null
+    redrawOverlay()
+    return
+  }
+  editorStore.removeActiveSelection()
+}
+
 onMounted(() => {
   redraw()
   // 容器大小改變（例如視窗縮放）時要重新計算縮放比例並重畫，
@@ -209,6 +224,7 @@ watch(() => [editorStore.selections, editorStore.activeSelectionId], redrawOverl
         @pointermove="handlePointerMove"
         @pointerup="handlePointerUp"
         @pointercancel="handlePointerUp"
+        @contextmenu.prevent="handleContextMenu"
       ></canvas>
     </div>
   </div>

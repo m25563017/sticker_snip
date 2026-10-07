@@ -27,6 +27,10 @@ function handleDelete(id: number): void {
     <template v-if="editorStore.selectionCount === 0">
       <p class="text-sm opacity-60">在右側圖片上拖曳，框出每一張貼紙</p>
     </template>
+    <template v-else>
+      <!-- 右鍵刪除沒有任何視覺線索，不提示的話使用者不會知道 -->
+      <p class="text-xs opacity-60">在圖片上按右鍵，可刪除目前選取（橘框）的範圍</p>
+    </template>
 
     <ul class="flex flex-col gap-2">
       <!-- key 用穩定的 id，畫面編號用 index：刪除時編號遞補，但 Vue 仍認得每一張是誰 -->
