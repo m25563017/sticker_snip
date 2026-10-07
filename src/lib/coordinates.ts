@@ -1,4 +1,5 @@
 import type { Point } from '@/types/selection'
+import { computeContainSize } from './canvas'
 
 /**
  * 畫面座標 ↔ 原圖座標互轉。
@@ -18,6 +19,32 @@ export function displayToSource(point: Point, scale: number): Point {
 /** 原圖上的位置 → 畫面上要畫的位置 */
 export function sourceToDisplay(point: Point, scale: number): Point {
   return { x: point.x * scale, y: point.y * scale }
+}
+
+/**
+ * 元件上的點擊位置 → 圖片像素座標，用於「等比塞進框裡、置中顯示」的圖片（同 object-fit: contain）。
+ * 圖片長寬比和框不同時，左右或上下會留白；點在留白處回傳 null，代表沒點到圖片。
+ *
+ * @param point 相對於元件左上角的點擊位置（CSS px）
+ */
+export function containedPointToImage(
+  point: Point,
+  elementWidth: number,
+  elementHeight: number,
+  imageWidth: number,
+  imageHeight: number,
+): Point | null {
+  const { scale } = computeContainSize(imageWidth, imageHeight, elementWidth, elementHeight)
+  if (scale <= 0) return null
+
+  // 用未四捨五入的實際顯示尺寸計算留白，避免換算出的座標有半像素偏移
+  const offsetX = (elementWidth - imageWidth * scale) / 2
+  const offsetY = (elementHeight - imageHeight * scale) / 2
+  const x = (point.x - offsetX) / scale
+  const y = (point.y - offsetY) / scale
+
+  if (x < 0 || y < 0 || x >= imageWidth || y >= imageHeight) return null
+  return { x, y }
 }
 
 /**

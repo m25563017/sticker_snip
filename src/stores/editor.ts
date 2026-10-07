@@ -15,6 +15,9 @@ import {
 /** 去背範圍的產生方式（需求 4.2）：整張自動偵測，或使用者自行圈選 */
 export type RangeMode = 'auto' | 'manual'
 
+/** 工作階段：先框選所有範圍，再進入檢查階段統一預覽結果、針對不滿意的微調後匯出 */
+export type EditorStage = 'select' | 'review'
+
 /** 套用到所有範圍的輸出設定（需求 4.2），目前只放 M1 實際用到的欄位 */
 export interface OutputSettings {
   filePrefix: string
@@ -34,6 +37,7 @@ export const useEditorStore = defineStore('editor', () => {
   const sourcePixels = shallowRef<PixelBuffer | null>(null)
 
   // ======== 模式與輸出設定 ========
+  const stage = ref<EditorStage>('select')
   /** M1 只實作手動框選，所以預設 manual */
   const rangeMode = ref<RangeMode>('manual')
   const outputSettings = ref<OutputSettings>({
@@ -81,6 +85,17 @@ export const useEditorStore = defineStore('editor', () => {
     target.backgroundColor = rgbToHex(detectBackgroundColor(image, mask))
   }
 
+  /** 滴管取色：掛上「手動」標記，之後重新偵測時就不會蓋掉使用者選的顏色 */
+  function setManualBackgroundColor(id: number, color: string): void {
+    updateSelection(id, { backgroundColor: color, isManualColor: true })
+  }
+
+  /** 取消手動指定，回到演算法自動偵測的背景色 */
+  function resetToAutoBackgroundColor(id: number): void {
+    updateSelection(id, { isManualColor: false })
+    refreshBackgroundColor(id)
+  }
+
   function removeSelection(id: number): void {
     selections.value = selections.value.filter((item) => item.id !== id)
     // 被刪掉的若正好是高亮中的範圍，要一併清掉，否則會指向不存在的資料
@@ -98,11 +113,13 @@ export const useEditorStore = defineStore('editor', () => {
     selections.value = []
     nextId.value = 1
     activeSelectionId.value = null
+    stage.value = 'select'
   }
 
   return {
     sourceBitmap,
     sourcePixels,
+    stage,
     rangeMode,
     outputSettings,
     selections,
@@ -113,6 +130,8 @@ export const useEditorStore = defineStore('editor', () => {
     removeSelection,
     updateSelection,
     refreshBackgroundColor,
+    setManualBackgroundColor,
+    resetToAutoBackgroundColor,
     reset,
   }
 })

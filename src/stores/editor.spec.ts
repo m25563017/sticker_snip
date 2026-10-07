@@ -137,6 +137,39 @@ describe('useEditorStore', () => {
     expect(store.selections[0].backgroundColor).toBe('#123456')
   })
 
+  it('滴管取色後標記為手動，之後重新偵測不會覆蓋', () => {
+    const store = useEditorStore()
+    store.sourcePixels = makeTwoToneImage()
+    const created = store.addSelection({ type: 'rect', bounds: { x: 0, y: 0, width: 10, height: 10 } })
+
+    store.setManualBackgroundColor(created.id, '#abcdef')
+    store.refreshBackgroundColor(created.id)
+
+    expect(store.selections[0].backgroundColor).toBe('#abcdef')
+    expect(store.selections[0].isManualColor).toBe(true)
+  })
+
+  it('恢復自動偵測：取消手動標記並重新偵測背景色', () => {
+    const store = useEditorStore()
+    store.sourcePixels = makeTwoToneImage()
+    const created = store.addSelection({ type: 'rect', bounds: { x: 10, y: 0, width: 10, height: 10 } })
+    store.setManualBackgroundColor(created.id, '#abcdef')
+
+    store.resetToAutoBackgroundColor(created.id)
+
+    expect(store.selections[0].isManualColor).toBe(false)
+    expect(store.selections[0].backgroundColor).toBe('#ffff00')
+  })
+
+  it('reset 會回到框選階段', () => {
+    const store = useEditorStore()
+    store.stage = 'review'
+
+    store.reset()
+
+    expect(store.stage).toBe('select')
+  })
+
   it('reset 會清空選取並讓編號重新從 1 開始', () => {
     const store = useEditorStore()
     const created = store.addSelection(makeRectShape())

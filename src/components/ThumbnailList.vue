@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { useEditorStore } from '@/stores/editor'
-import { useSelectionPreviews } from '@/composables/useSelectionPreviews'
-import ThumbnailCanvas from '@/components/ThumbnailCanvas.vue'
+import type { PixelBuffer } from '@/lib/pixelBuffer'
+import PixelCanvas from '@/components/PixelCanvas.vue'
+
+const props = defineProps<{
+  /** 每個範圍的去背結果（以 id 查詢），由 App 統一計算，檢查頁共用同一份快取 */
+  previews: Map<number, PixelBuffer>
+}>()
 
 const editorStore = useEditorStore()
-const { previews } = useSelectionPreviews()
 
 function handleSelect(id: number): void {
   editorStore.activeSelectionId = id
@@ -45,9 +49,9 @@ function handleDelete(id: number): void {
           </div>
 
           <!-- ======== 去背結果（棋盤格底代表透明）======== -->
-          <div class="thumbnail-list__preview flex items-center justify-center">
-            <template v-if="previews.get(selection.id)">
-              <ThumbnailCanvas :image="previews.get(selection.id)!" />
+          <div class="thumbnail-list__preview preview-backdrop preview-backdrop--checker flex items-center justify-center">
+            <template v-if="props.previews.get(selection.id)">
+              <PixelCanvas :image="props.previews.get(selection.id)!" />
             </template>
           </div>
 
@@ -86,10 +90,6 @@ function handleDelete(id: number): void {
 
   .thumbnail-list__preview {
     height: 120px;
-    background-color: #fff;
-    background-image: conic-gradient(#ddd 25%, transparent 0 50%, #ddd 0 75%, transparent 0);
-    background-size: 12px 12px;
-    border-radius: 4px;
   }
 
   .thumbnail-list__delete {
