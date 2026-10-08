@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useNotify } from '@pieda/core'
 import { useEditorStore } from '@/stores/editor'
 import ImageDropzone from '@/components/ImageDropzone.vue'
@@ -12,12 +13,19 @@ import { useSelectionPreviews } from '@/composables/useSelectionPreviews'
 
 const $notify = useNotify()
 const editorStore = useEditorStore()
-const { isExporting, exportZip } = useExport()
+const { isExporting, exportStickers } = useExport()
 /**
  * 去背預覽在這裡建立一次，再傳給縮圖列表與檢查頁：
  * 兩邊各自建立的話，切換階段時會把所有範圍重算一遍。
  */
 const { previews } = useSelectionPreviews()
+
+/** 只有一張時直接下載 PNG，按鈕文字跟著說清楚會拿到什麼 */
+const exportLabel = computed(() => {
+  if (isExporting.value) return '處理中…'
+  const count = editorStore.selectionCount
+  return count === 1 ? '下載 PNG' : `下載 zip（${count} 張）`
+})
 
 function handleEnterReview(): void {
   editorStore.stage = 'review'
@@ -67,8 +75,8 @@ async function handleReupload(): Promise<void> {
           <button type="button" class="app-shell__secondary inline-flex items-center gap-1 whitespace-nowrap" @click="handleBackToSelect">
             <AppIcon name="arrowLeft" />返回框選
           </button>
-          <button type="button" class="app-shell__primary inline-flex items-center gap-1 whitespace-nowrap" :disabled="isExporting" @click="exportZip">
-            <AppIcon name="download" />{{ isExporting ? '打包中…' : `下載 zip（${editorStore.selectionCount} 張）` }}
+          <button type="button" class="app-shell__primary inline-flex items-center gap-1 whitespace-nowrap" :disabled="isExporting" @click="exportStickers">
+            <AppIcon name="download" />{{ exportLabel }}
           </button>
         </div>
       </template>

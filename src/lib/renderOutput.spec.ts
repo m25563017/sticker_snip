@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { effectMargin, type RenderSettings } from './renderOutput'
+import { DEFAULT_BACKGROUND } from './stickerBackground'
 import { DEFAULT_BORDER } from './stickerBorder'
 import { DEFAULT_SHADOW } from './stickerShadow'
 
-const base: RenderSettings = { exportSize: 256, padding: 16, border: DEFAULT_BORDER, shadow: DEFAULT_SHADOW }
+const base: RenderSettings = {
+  exportSize: 256,
+  padding: 16,
+  border: DEFAULT_BORDER,
+  shadow: DEFAULT_SHADOW,
+  background: DEFAULT_BACKGROUND,
+}
 
 describe('effectMargin', () => {
   it('效果都關閉時不預留空間', () => {

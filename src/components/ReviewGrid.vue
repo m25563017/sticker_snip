@@ -22,8 +22,8 @@ const editorStore = useEditorStore()
  * 在前綴欄位打字時，才不會每打一個字就把所有卡片的白邊重算一遍
  */
 const renderSettings = computed(() => {
-  const { exportSize, padding, border, shadow } = editorStore.outputSettings
-  return { exportSize, padding, border, shadow }
+  const { exportSize, padding, border, shadow, background } = editorStore.outputSettings
+  return { exportSize, padding, border, shadow, background }
 })
 
 /** 記住使用者偏好的預覽背景，下次開啟不用重選 */

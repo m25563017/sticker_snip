@@ -11,6 +11,7 @@ import type { EdgeQuality } from '@/lib/refineEdges'
 import { DEFAULT_EXPORT_SIZE, DEFAULT_PADDING, type ExportSize } from '@/lib/composeOutput'
 import { DEFAULT_BORDER, type BorderSettings } from '@/lib/stickerBorder'
 import { DEFAULT_SHADOW, type ShadowSettings } from '@/lib/stickerShadow'
+import { DEFAULT_BACKGROUND, type BackgroundSettings } from '@/lib/stickerBackground'
 import {
   DEFAULT_THRESHOLD,
   type Bounds,
@@ -34,6 +35,7 @@ export interface OutputSettings {
   padding: number
   border: BorderSettings
   shadow: ShadowSettings
+  background: BackgroundSettings
 }
 
 export const useEditorStore = defineStore('editor', () => {
@@ -67,6 +69,7 @@ export const useEditorStore = defineStore('editor', () => {
       padding: DEFAULT_PADDING,
       border: { ...DEFAULT_BORDER },
       shadow: { ...DEFAULT_SHADOW },
+      background: { ...DEFAULT_BACKGROUND },
     },
     undefined,
     { mergeDefaults: true },

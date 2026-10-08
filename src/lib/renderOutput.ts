@@ -1,5 +1,6 @@
 import { outputLayout, type ExportSize, type OutputLayout } from './composeOutput'
 import type { PixelBuffer } from './pixelBuffer'
+import { applyBackground, type BackgroundSettings } from './stickerBackground'
 import { applyBorder, type BorderSettings } from './stickerBorder'
 import { applyShadow, shadowReach, type ShadowSettings } from './stickerShadow'
 
@@ -9,6 +10,7 @@ export interface RenderSettings {
   padding: number
   border: BorderSettings
   shadow: ShadowSettings
+  background: BackgroundSettings
 }
 
 /**
@@ -42,8 +44,8 @@ function placeOnCanvas(content: PixelBuffer, layout: OutputLayout, scale: number
 }
 
 /**
- * 產生最終輸出的圖：排版（尺寸、邊距、預留效果空間）→ 縮放擺放 → 白邊 → 陰影。
- * 陰影在白邊之後：白邊也是貼紙的一部分，陰影要從白邊外緣開始。
+ * 產生最終輸出的圖：排版（尺寸、邊距、預留效果空間）→ 縮放擺放 → 白邊 → 陰影 → 實色背景。
+ * 每一層都墊在前一層之下：陰影要從白邊外緣開始，實色背景是最底層的卡片，陰影落在卡片上。
  * 預覽與匯出都走這一條，看到的就是下載到的。
  *
  * @param content 已經裁掉透明空白的貼紙（trimTransparent 的結果）
@@ -54,12 +56,13 @@ export function renderOutput(content: PixelBuffer, settings: RenderSettings, max
   const layout = outputLayout(content.width, content.height, settings.exportSize, settings.padding, effectMargin(settings))
   const scale = maxSide ? maxSide / Math.max(layout.canvasWidth, layout.canvasHeight) : 1
   const placed = placeOnCanvas(content, layout, scale)
-  const { border, shadow } = settings
+  const { border, shadow, background } = settings
   const bordered = applyBorder(placed, { ...border, thickness: border.thickness * scale })
-  return applyShadow(bordered, {
+  const shadowed = applyShadow(bordered, {
     ...shadow,
     distance: shadow.distance * scale,
     spread: shadow.spread * scale,
     size: shadow.size * scale,
   })
+  return applyBackground(shadowed, { ...background, radius: background.radius * scale })
 }

@@ -6,6 +6,7 @@ import { buildFileName } from '@/lib/fileNaming'
 import type { EdgeQuality } from '@/lib/refineEdges'
 import BorderControls from '@/components/BorderControls.vue'
 import ShadowControls from '@/components/ShadowControls.vue'
+import BackgroundControls from '@/components/BackgroundControls.vue'
 
 /**
  * 輸出設定（需求 4.2）：檔名前綴、輸出尺寸、邊距、邊緣品質，以及白邊等輸出效果。
@@ -116,6 +117,7 @@ function handleEdgeQualityChange(event: Event): void {
     <!-- ======== 輸出效果 ======== -->
     <BorderControls />
     <ShadowControls />
+    <BackgroundControls />
   </aside>
 </template>
 
