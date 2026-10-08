@@ -62,7 +62,7 @@ function handleDelete(id: number): void {
 
           <button
             type="button"
-            class="thumbnail-list__delete inline-flex items-center gap-1 justify-center"
+            class="thumbnail-list__delete inline-flex items-center gap-1 justify-center whitespace-nowrap"
             @click.stop="handleDelete(selection.id)"
           >
             <AppIcon name="trash" :size="14" />刪除

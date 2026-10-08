@@ -56,7 +56,7 @@ describe('useSelectionPreviews', () => {
     expect(previews.value.get(2)).toBe(untouchedBefore)
   })
 
-  it('修改不影響去背的設定（白邊）時，不重算', async () => {
+  it('修改不影響去背結果的欄位（自動／手動標記）時，不重算', async () => {
     const editorStore = useEditorStore()
     editorStore.sourcePixels = makeWhiteImage()
     useSelectionPreviews()
@@ -64,7 +64,7 @@ describe('useSelectionPreviews', () => {
     await nextTick()
     vi.mocked(processSelection).mockClear()
 
-    editorStore.selections[0].whiteBorder.enabled = true
+    editorStore.selections[0].createdBy = 'auto'
     await nextTick()
 
     expect(processSelection).not.toHaveBeenCalled()

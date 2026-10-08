@@ -73,7 +73,7 @@ function handleClearAuto(): void {
         <button
           type="button"
           role="radio"
-          class="select-toolbar__shape inline-flex items-center gap-1"
+          class="select-toolbar__shape inline-flex items-center gap-1 whitespace-nowrap"
           :class="{ 'select-toolbar__shape--active': editorStore.drawShape === shape.value }"
           :aria-checked="editorStore.drawShape === shape.value"
           :title="shape.hint"
@@ -93,12 +93,12 @@ function handleClearAuto(): void {
       <span class="text-sm w-12">{{ distanceDraft }} px</span>
     </label>
 
-    <button type="button" class="select-toolbar__button inline-flex items-center gap-1" @click="handleRedetect">
+    <button type="button" class="select-toolbar__button inline-flex items-center gap-1 whitespace-nowrap" @click="handleRedetect">
       <AppIcon name="refresh" />重新偵測
     </button>
     <button
       type="button"
-      class="select-toolbar__button inline-flex items-center gap-1"
+      class="select-toolbar__button inline-flex items-center gap-1 whitespace-nowrap"
       :disabled="autoCount === 0"
       @click="handleClearAuto"
     >

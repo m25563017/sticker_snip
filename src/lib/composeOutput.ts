@@ -62,16 +62,18 @@ export function trimTransparent(image: PixelBuffer): PixelBuffer {
  * - original：不縮放，四周加上邊距
  * - 正方形：扣掉兩側邊距後等比縮放塞進去，置中
  *
- * @param padding 邊距，單位是輸出圖片的 px
+ * @param padding 邊距，單位是輸出圖片的 px，量的是「畫布邊緣到最外層效果（例如白邊外緣）」的距離
+ * @param effectMargin 貼紙外圍效果（白邊）往外延伸多寬；會在邊距內側再預留這麼多空間，效果才不會被畫布切掉
  */
 export function outputLayout(
   contentWidth: number,
   contentHeight: number,
   size: ExportSize,
   padding: number,
+  effectMargin = 0,
 ): OutputLayout {
   if (size === 'original') {
-    const margin = Math.max(0, Math.round(padding))
+    const margin = Math.max(0, Math.round(padding)) + Math.max(0, Math.ceil(effectMargin))
     return {
       canvasWidth: contentWidth + margin * 2,
       canvasHeight: contentHeight + margin * 2,
@@ -82,8 +84,8 @@ export function outputLayout(
     }
   }
 
-  // 邊距最多到邊長的一半少 1，至少保留 1 px 給貼紙本身
-  const margin = Math.min(Math.max(0, padding), size / 2 - 0.5)
+  // 邊距加效果最多到邊長的一半少 1，至少保留 1 px 給貼紙本身
+  const margin = Math.min(Math.max(0, padding) + Math.max(0, effectMargin), size / 2 - 0.5)
   const available = size - margin * 2
   const scale = Math.min(available / contentWidth, available / contentHeight)
   const width = Math.max(1, Math.round(contentWidth * scale))

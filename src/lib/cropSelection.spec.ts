@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createDefaultWhiteBorder, DEFAULT_THRESHOLD, type Bounds, type Selection } from '@/types/selection'
+import { DEFAULT_THRESHOLD, type Bounds, type Selection } from '@/types/selection'
 import { cropSelection } from './cropSelection'
 import type { PixelBuffer } from './pixelBuffer'
 
@@ -27,7 +27,6 @@ function makeRectSelection(bounds: Bounds): Selection {
     createdBy: 'manual',
     type: 'rect',
     bounds,
-    whiteBorder: createDefaultWhiteBorder(),
     backgroundColor: null,
     threshold: DEFAULT_THRESHOLD,
     manualEdits: [],

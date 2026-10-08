@@ -21,18 +21,6 @@ export interface Bounds {
   height: number
 }
 
-/** 白色貼紙描邊設定（需求 4.7 外框） */
-export interface WhiteBorderConfig {
-  enabled: boolean
-  mode: 'solid' | 'adaptive'
-  color: string
-  opacity: number
-  /** 粗細，單位 px */
-  thickness: number
-  /** 邊緣柔化程度 0–1 */
-  fade: number
-}
-
 /** 新範圍的預設閾值：顏色距離在此以內視為背景 */
 export const DEFAULT_THRESHOLD = 30
 
@@ -42,7 +30,6 @@ export type SelectionCreatedBy = 'auto' | 'manual'
 interface SelectionBase {
   id: number
   createdBy: SelectionCreatedBy
-  whiteBorder: WhiteBorderConfig
   /**
    * 每個範圍各自的背景色（需求 4.6）──不同貼紙的底色可能不同，
    * 所以不放在全域。尚未偵測時為 null。
@@ -85,14 +72,3 @@ export type Selection = RectLikeSelection | LassoSelection
 export type SelectionShape =
   | Pick<RectLikeSelection, 'type' | 'bounds'>
   | Pick<LassoSelection, 'type' | 'points'>
-
-export function createDefaultWhiteBorder(): WhiteBorderConfig {
-  return {
-    enabled: false,
-    mode: 'solid',
-    color: '#ffffff',
-    opacity: 1,
-    thickness: 8,
-    fade: 0.3,
-  }
-}

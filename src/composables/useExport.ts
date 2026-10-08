@@ -3,7 +3,8 @@ import JSZip from 'jszip'
 import { useNotify } from '@pieda/core'
 import { useEditorStore } from '@/stores/editor'
 import { pixelBufferToPngBlob } from '@/lib/canvas'
-import { outputLayout, trimTransparent } from '@/lib/composeOutput'
+import { trimTransparent } from '@/lib/composeOutput'
+import { renderOutput } from '@/lib/renderOutput'
 import { buildFileName } from '@/lib/fileNaming'
 import { processSelection } from '@/lib/processSelection'
 
@@ -24,7 +25,7 @@ function triggerDownload(blob: Blob, fileName: string): void {
 }
 
 /**
- * 匯出流程：每個範圍依畫面順序去背 → 依輸出設定排版（裁空白、邊距、尺寸）→ 轉 PNG → 依命名規則放進 zip → 下載。
+ * 匯出流程：每個範圍依畫面順序去背 → 依輸出設定排版（裁空白、邊距、尺寸、白邊）→ 轉 PNG → 依命名規則放進 zip → 下載。
  * 去背走和縮圖相同的 processSelection，確保下載結果與預覽一致。
  */
 export function useExport() {
@@ -47,13 +48,12 @@ export function useExport() {
     isExporting.value = true
     try {
       const zip = new JSZip()
-      const { filePrefix, edgeQuality, exportSize, padding } = editorStore.outputSettings
+      const { filePrefix, edgeQuality } = editorStore.outputSettings
 
       for (const [index, selection] of selections.entries()) {
         // 和檢查頁預覽走同一套排版，下載到的構圖就是預覽看到的
         const content = trimTransparent(processSelection(source, selection, edgeQuality))
-        const layout = outputLayout(content.width, content.height, exportSize, padding)
-        const png = await pixelBufferToPngBlob(content, layout)
+        const png = await pixelBufferToPngBlob(renderOutput(content, editorStore.outputSettings))
         zip.file(buildFileName(filePrefix, index, selections.length), png)
       }
 

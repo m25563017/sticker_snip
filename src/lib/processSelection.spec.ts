@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createDefaultWhiteBorder, DEFAULT_THRESHOLD, type RectLikeSelection, type Selection } from '@/types/selection'
+import { DEFAULT_THRESHOLD, type RectLikeSelection, type Selection } from '@/types/selection'
 import type { PixelBuffer } from './pixelBuffer'
 import { processSelection } from './processSelection'
 
@@ -27,7 +27,6 @@ function makeSelection(backgroundColor: string | null): RectLikeSelection {
     createdBy: 'manual',
     type: 'rect',
     bounds: { x: 1, y: 1, width: 8, height: 8 },
-    whiteBorder: createDefaultWhiteBorder(),
     backgroundColor,
     threshold: DEFAULT_THRESHOLD,
     manualEdits: [],

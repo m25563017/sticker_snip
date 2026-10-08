@@ -189,7 +189,7 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
         <footer class="flex items-center justify-between">
           <button
             type="button"
-            class="fine-tune-dialog__button inline-flex items-center gap-1"
+            class="fine-tune-dialog__button inline-flex items-center gap-1 whitespace-nowrap"
             :disabled="!hasChanges"
             @click="handleRevert"
           >

@@ -41,6 +41,9 @@ function handleSelect(value: PreviewBackdrop): void {
 
 <style scoped>
 .backdrop-toggle {
+  /* 標籤與選項都不折行，空間不夠時寧可整組換行，也不要把中文擠成一字一行 */
+  white-space: nowrap;
+
   .backdrop-toggle__option {
     display: flex;
     align-items: center;

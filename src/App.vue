@@ -49,12 +49,12 @@ async function handleReupload(): Promise<void> {
       <h1 class="text-xl">貼紙裁切去背工具</h1>
       <template v-if="editorStore.hasImage && editorStore.stage === 'select'">
         <div class="flex items-center gap-2">
-          <button type="button" class="app-shell__secondary inline-flex items-center gap-1" @click="handleReupload">
+          <button type="button" class="app-shell__secondary inline-flex items-center gap-1 whitespace-nowrap" @click="handleReupload">
             <AppIcon name="upload" />重新上傳
           </button>
           <button
             type="button"
-            class="app-shell__primary inline-flex items-center gap-1"
+            class="app-shell__primary inline-flex items-center gap-1 whitespace-nowrap"
             :disabled="editorStore.selectionCount === 0"
             @click="handleEnterReview"
           >
@@ -64,10 +64,10 @@ async function handleReupload(): Promise<void> {
       </template>
       <template v-if="editorStore.hasImage && editorStore.stage === 'review'">
         <div class="flex items-center gap-2">
-          <button type="button" class="app-shell__secondary inline-flex items-center gap-1" @click="handleBackToSelect">
+          <button type="button" class="app-shell__secondary inline-flex items-center gap-1 whitespace-nowrap" @click="handleBackToSelect">
             <AppIcon name="arrowLeft" />返回框選
           </button>
-          <button type="button" class="app-shell__primary inline-flex items-center gap-1" :disabled="isExporting" @click="exportZip">
+          <button type="button" class="app-shell__primary inline-flex items-center gap-1 whitespace-nowrap" :disabled="isExporting" @click="exportZip">
             <AppIcon name="download" />{{ isExporting ? '打包中…' : `下載 zip（${editorStore.selectionCount} 張）` }}
           </button>
         </div>

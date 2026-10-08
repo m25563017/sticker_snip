@@ -54,7 +54,6 @@ describe('useEditorStore', () => {
 
     expect(created.backgroundColor).toBeNull()
     expect(created.threshold).toBe(DEFAULT_THRESHOLD)
-    expect(created.whiteBorder.enabled).toBe(false)
   })
 
   it('每個範圍的設定互相獨立，改其中一個不影響另一個', () => {
@@ -68,8 +67,6 @@ describe('useEditorStore', () => {
     expect(firstAfter.threshold).toBe(80)
     expect(secondAfter.threshold).toBe(DEFAULT_THRESHOLD)
     expect(secondAfter.backgroundColor).toBeNull()
-    // 白邊設定也必須是各自獨立的物件，不能共用同一份參照
-    expect(firstAfter.whiteBorder).not.toBe(secondAfter.whiteBorder)
   })
 
   it('刪除選取範圍後，編號不會被回收給下一個新選取', () => {

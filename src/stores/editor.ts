@@ -9,8 +9,8 @@ import { defaultMergeDistance, detectStickers } from '@/lib/detectStickers'
 import { translateSelection } from '@/lib/selectionShape'
 import type { EdgeQuality } from '@/lib/refineEdges'
 import { DEFAULT_EXPORT_SIZE, DEFAULT_PADDING, type ExportSize } from '@/lib/composeOutput'
+import { DEFAULT_BORDER, type BorderSettings } from '@/lib/stickerBorder'
 import {
-  createDefaultWhiteBorder,
   DEFAULT_THRESHOLD,
   type Bounds,
   type ManualEdit,
@@ -29,8 +29,9 @@ export interface OutputSettings {
   filePrefix: string
   edgeQuality: EdgeQuality
   exportSize: ExportSize
-  /** 輸出圖片四周的留白，單位是輸出圖片的 px */
+  /** 輸出圖片四周的留白，單位是輸出圖片的 px，量到最外層效果（白邊）的外緣 */
   padding: number
+  border: BorderSettings
 }
 
 export const useEditorStore = defineStore('editor', () => {
@@ -57,7 +58,13 @@ export const useEditorStore = defineStore('editor', () => {
    */
   const outputSettings = useStorage<OutputSettings>(
     'sticker-snip:output-settings',
-    { filePrefix: 'sticker_', edgeQuality: 'smooth', exportSize: DEFAULT_EXPORT_SIZE, padding: DEFAULT_PADDING },
+    {
+      filePrefix: 'sticker_',
+      edgeQuality: 'smooth',
+      exportSize: DEFAULT_EXPORT_SIZE,
+      padding: DEFAULT_PADDING,
+      border: { ...DEFAULT_BORDER },
+    },
     undefined,
     { mergeDefaults: true },
   )
@@ -140,7 +147,6 @@ export const useEditorStore = defineStore('editor', () => {
       ...shape,
       id: nextId.value++,
       createdBy,
-      whiteBorder: createDefaultWhiteBorder(),
       backgroundColor: null,
       threshold: DEFAULT_THRESHOLD,
       manualEdits: [],

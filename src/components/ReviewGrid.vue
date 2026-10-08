@@ -17,6 +17,15 @@ const props = defineProps<{
 
 const editorStore = useEditorStore()
 
+/**
+ * 只把會影響畫面的設定傳給預覽：檔名前綴、邊緣品質不在這裡，
+ * 在前綴欄位打字時，才不會每打一個字就把所有卡片的白邊重算一遍
+ */
+const renderSettings = computed(() => {
+  const { exportSize, padding, border } = editorStore.outputSettings
+  return { exportSize, padding, border }
+})
+
 /** 記住使用者偏好的預覽背景，下次開啟不用重選 */
 const backdrop = useStorage<PreviewBackdrop>('sticker-snip:preview-backdrop', 'checker')
 
@@ -40,41 +49,40 @@ function handleCloseFineTune(): void {
 </script>
 
 <template>
-  <section class="review-grid flex flex-col gap-4 h-full">
-    <!-- ======== 輸出設定：調整後下面的預覽即時反映 ======== -->
-    <OutputSettingsPanel class="mt-4" />
+  <section class="review-grid flex gap-4 h-full pt-4">
+    <!-- ======== 左：預覽卡片 ======== -->
+    <div class="flex flex-col flex-1 gap-4 min-w-0">
+      <!-- ======== 說明 + 背景切換 ======== -->
+      <div class="flex items-center justify-between gap-4">
+        <p class="text-sm opacity-70">確認每一張的去背與輸出效果，不滿意的點一下進入微調</p>
+        <BackdropToggle v-model="backdrop" />
+      </div>
 
-    <!-- ======== 說明 + 背景切換 ======== -->
-    <div class="flex items-center justify-between gap-4">
-      <p class="text-sm opacity-70">確認每一張的去背與輸出效果，不滿意的點一下進入微調</p>
-      <BackdropToggle v-model="backdrop" />
+      <!-- ======== 所有結果 ======== -->
+      <ul class="review-grid__list">
+        <template v-for="(selection, index) in editorStore.selections" :key="selection.id">
+          <li>
+            <button type="button" class="review-grid__card" @click="handleOpenFineTune(selection.id)">
+              <span class="flex items-center justify-between w-full text-sm">
+                #{{ index + 1 }}
+                <template v-if="isAdjusted(selection)">
+                  <span class="review-grid__badge">已微調</span>
+                </template>
+              </span>
+              <span class="review-grid__image preview-backdrop" :class="`preview-backdrop--${backdrop}`">
+                <!-- 依輸出設定排版後的樣子（外圍淡框是輸出圖片的邊界） -->
+                <template v-if="props.previews.get(selection.id)">
+                  <OutputPreview :image="props.previews.get(selection.id)!" :settings="renderSettings" />
+                </template>
+              </span>
+            </button>
+          </li>
+        </template>
+      </ul>
     </div>
 
-    <!-- ======== 所有結果 ======== -->
-    <ul class="review-grid__list">
-      <template v-for="(selection, index) in editorStore.selections" :key="selection.id">
-        <li>
-          <button type="button" class="review-grid__card" @click="handleOpenFineTune(selection.id)">
-            <span class="flex items-center justify-between w-full text-sm">
-              #{{ index + 1 }}
-              <template v-if="isAdjusted(selection)">
-                <span class="review-grid__badge">已微調</span>
-              </template>
-            </span>
-            <span class="review-grid__image preview-backdrop" :class="`preview-backdrop--${backdrop}`">
-              <!-- 依輸出設定排版後的樣子（外圍淡框是輸出圖片的邊界） -->
-              <template v-if="props.previews.get(selection.id)">
-                <OutputPreview
-                  :image="props.previews.get(selection.id)!"
-                  :size="editorStore.outputSettings.exportSize"
-                  :padding="editorStore.outputSettings.padding"
-                />
-              </template>
-            </span>
-          </button>
-        </li>
-      </template>
-    </ul>
+    <!-- ======== 右：輸出設定，調整後左邊的預覽即時反映 ======== -->
+    <OutputSettingsPanel class="review-grid__settings" />
 
     <template v-if="fineTuneTarget">
       <FineTuneDialog
@@ -90,6 +98,12 @@ function handleCloseFineTune(): void {
 
 <style scoped>
 .review-grid {
+  .review-grid__settings {
+    flex-shrink: 0;
+    width: 18rem;
+    overflow-y: auto;
+  }
+
   .review-grid__list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

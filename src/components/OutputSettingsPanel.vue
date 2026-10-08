@@ -4,11 +4,12 @@ import { useEditorStore } from '@/stores/editor'
 import { EXPORT_SIZES, type ExportSize } from '@/lib/composeOutput'
 import { buildFileName } from '@/lib/fileNaming'
 import type { EdgeQuality } from '@/lib/refineEdges'
+import BorderControls from '@/components/BorderControls.vue'
 
 /**
- * 輸出設定（需求 4.2）：檔名前綴、輸出尺寸、邊距、邊緣品質。
- * 放在檢查頁而不是上傳後：這些只影響最後的輸出，框選時用不到；
- * 在檢查頁調整，下面的預覽卡片會即時反映結果。
+ * 輸出設定（需求 4.2）：檔名前綴、輸出尺寸、邊距、邊緣品質，以及白邊等輸出效果。
+ * 放在檢查頁右側而不是上傳後：這些只影響最後的輸出，框選時用不到；
+ * 在檢查頁調整，左邊的預覽卡片會即時反映結果。
  */
 
 /** 邊距滑桿上限（px）；正方形輸出時還會再受「邊長一半」限制 */
@@ -66,22 +67,29 @@ function handleEdgeQualityChange(event: Event): void {
 </script>
 
 <template>
-  <section class="output-settings-panel flex flex-wrap items-center gap-x-6 gap-y-2" aria-label="輸出設定">
-    <label class="flex items-center gap-2 text-sm">
-      檔名前綴
-      <input
-        type="text"
-        class="output-settings-panel__input output-settings-panel__prefix"
-        :maxlength="MAX_PREFIX_LENGTH"
-        :value="settings.filePrefix"
-        @input="handlePrefixInput"
-      />
-      <!-- 固定寬度：範例檔名長短不一，不固定的話後面的設定會跟著左右跳動 -->
-      <span class="output-settings-panel__example opacity-60" :title="fileNameExample">→ {{ fileNameExample }}</span>
-    </label>
+  <aside class="output-settings-panel flex flex-col gap-3" aria-label="輸出設定">
+    <h2 class="text-sm opacity-70">輸出設定</h2>
 
-    <label class="flex items-center gap-2 text-sm">
-      輸出尺寸
+    <!-- ======== 基本設定 ======== -->
+    <div class="flex flex-col gap-1">
+      <label class="output-settings-panel__row">
+        <span>檔名前綴</span>
+        <input
+          type="text"
+          class="output-settings-panel__input"
+          :maxlength="MAX_PREFIX_LENGTH"
+          :value="settings.filePrefix"
+          @input="handlePrefixInput"
+        />
+      </label>
+      <!-- 固定寬度並以「…」省略：範例檔名長短不一，不固定的話版面會跟著跳動 -->
+      <span class="output-settings-panel__example text-xs opacity-60" :title="fileNameExample">
+        → {{ fileNameExample }}
+      </span>
+    </div>
+
+    <label class="output-settings-panel__row">
+      <span>輸出尺寸</span>
       <select class="output-settings-panel__input" :value="settings.exportSize" @change="handleSizeChange">
         <template v-for="size in EXPORT_SIZES" :key="size">
           <option :value="size">{{ sizeLabel(size) }}</option>
@@ -89,43 +97,52 @@ function handleEdgeQualityChange(event: Event): void {
       </select>
     </label>
 
-    <label class="flex items-center gap-2 text-sm">
-      邊距
+    <label class="output-settings-panel__row">
+      <span>邊距</span>
       <input type="range" min="0" :max="paddingMax" step="1" :value="settings.padding" @input="handlePaddingInput" />
-      <span class="w-12">{{ settings.padding }} px</span>
+      <span class="w-12 text-right">{{ settings.padding }} px</span>
     </label>
 
-    <label class="flex items-center gap-2 text-sm">
-      邊緣品質
+    <label class="output-settings-panel__row">
+      <span>邊緣品質</span>
       <select class="output-settings-panel__input" :value="settings.edgeQuality" @change="handleEdgeQualityChange">
         <template v-for="option in EDGE_QUALITY_OPTIONS" :key="option.value">
           <option :value="option.value" :title="option.hint">{{ option.label }}</option>
         </template>
       </select>
     </label>
-  </section>
+
+    <!-- ======== 輸出效果 ======== -->
+    <BorderControls />
+  </aside>
 </template>
 
 <style scoped>
 .output-settings-panel {
-  padding: 10px 12px;
+  padding: 12px;
   border: 1px solid #ddd;
   border-radius: 8px;
 
+  /* 標籤、控制項、數值三欄對齊；select 與文字框跨過數值欄 */
+  .output-settings-panel__row {
+    display: grid;
+    grid-template-columns: 4.5rem 1fr auto;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+  }
+
   .output-settings-panel__input {
+    grid-column: span 2;
+    min-width: 0;
     padding: 2px 6px;
     border: 1px solid #999;
     border-radius: 4px;
     background-color: #fff;
   }
 
-  .output-settings-panel__prefix {
-    width: 8rem;
-  }
-
-  /* 剛好放得下 10 個全形字的前綴 + 流水號；萬一更長就用「…」省略，滑鼠停上去看完整檔名 */
   .output-settings-panel__example {
-    width: 14rem;
+    padding-left: calc(4.5rem + 8px);
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;

@@ -80,3 +80,17 @@ describe('outputLayout', () => {
     expect(layout.x + layout.width).toBeLessThanOrEqual(64)
   })
 })
+
+describe('outputLayout（預留白邊空間）', () => {
+  it('邊距量到白邊外緣：貼紙再往內縮一個白邊的寬度', () => {
+    // 輸出 128、邊距 14、白邊 8 → 貼紙離畫布邊緣 22 px，可用 84 px
+    const layout = outputLayout(100, 50, 128, 14, 8)
+
+    expect(layout.x).toBe(22)
+    expect(layout.width).toBe(84)
+  })
+
+  it('原尺寸：畫布四周加上邊距與白邊寬度', () => {
+    expect(outputLayout(20, 15, 'original', 4, 3)).toMatchObject({ canvasWidth: 34, x: 7 })
+  })
+})

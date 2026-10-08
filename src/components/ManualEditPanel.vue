@@ -84,12 +84,13 @@ function handleClearEdits(): void {
 <template>
   <figure class="manual-edit-panel flex flex-col gap-1">
     <!-- ======== 工具切換：魔術棒點一下去掉同色區塊；橡皮擦拖曳直接擦掉 ======== -->
-    <figcaption class="flex items-center gap-2 text-sm">
+    <!-- 文字一律不折行（中文會被擠成一字一行）；空間不夠時讓筆刷滑桿整組換到下一行 -->
+    <figcaption class="flex flex-wrap items-center gap-2 text-sm whitespace-nowrap">
       <span class="opacity-70">去背結果</span>
       <template v-for="tool in TOOLS" :key="tool.value">
         <button
           type="button"
-          class="manual-edit-panel__tool inline-flex items-center gap-1"
+          class="manual-edit-panel__tool inline-flex items-center gap-1 shrink-0 whitespace-nowrap"
           :class="{ 'manual-edit-panel__tool--active': activeTool === tool.value }"
           :aria-pressed="activeTool === tool.value"
           @click="handleSelectTool(tool.value)"
@@ -131,7 +132,7 @@ function handleClearEdits(): void {
     <div class="flex items-center gap-2">
       <button
         type="button"
-        class="manual-edit-panel__button inline-flex items-center gap-1"
+        class="manual-edit-panel__button inline-flex items-center gap-1 whitespace-nowrap"
         :disabled="props.selection.manualEdits.length === 0"
         @click="handleUndoEdit"
       >
@@ -139,7 +140,7 @@ function handleClearEdits(): void {
       </button>
       <button
         type="button"
-        class="manual-edit-panel__button inline-flex items-center gap-1"
+        class="manual-edit-panel__button inline-flex items-center gap-1 whitespace-nowrap"
         :disabled="props.selection.manualEdits.length === 0"
         @click="handleClearEdits"
       >

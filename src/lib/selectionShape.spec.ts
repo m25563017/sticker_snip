@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createDefaultWhiteBorder, DEFAULT_THRESHOLD, type Bounds, type Point, type Selection } from '@/types/selection'
+import { DEFAULT_THRESHOLD, type Bounds, type Point, type Selection } from '@/types/selection'
 import {
   clampTranslation,
   containsPoint,
@@ -12,7 +12,6 @@ import {
 const common = {
   id: 1,
   createdBy: 'manual' as const,
-  whiteBorder: createDefaultWhiteBorder(),
   backgroundColor: null,
   threshold: DEFAULT_THRESHOLD,
   manualEdits: [],

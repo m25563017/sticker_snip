@@ -43,7 +43,7 @@ export function useSelectionPreviews() {
   /**
    * watchEffect 會自動追蹤執行過程中「讀到」的響應式資料：
    * 這裡讀了 sourcePixels、邊緣品質、selections 陣列，以及每個範圍的 bounds／背景色／閾值／手動修改，
-   * 之後任何一個改變都會重新執行。白邊設定沒被讀到，改它就不會觸發重算。
+   * 之後任何一個改變都會重新執行。沒被讀到的欄位（例如自動／手動標記）改了就不會觸發重算。
    */
   watchEffect(() => {
     const source = editorStore.sourcePixels
