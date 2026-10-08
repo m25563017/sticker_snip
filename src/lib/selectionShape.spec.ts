@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { createDefaultWhiteBorder, DEFAULT_THRESHOLD, type Bounds, type Point, type Selection } from '@/types/selection'
-import { containsPoint, createShapeMask, findSelectionAt, selectionBounds } from './selectionShape'
+import {
+  clampTranslation,
+  containsPoint,
+  createShapeMask,
+  findSelectionAt,
+  selectionBounds,
+  translateSelection,
+} from './selectionShape'
 
 const common = {
   id: 1,
@@ -8,7 +15,6 @@ const common = {
   whiteBorder: createDefaultWhiteBorder(),
   backgroundColor: null,
   threshold: DEFAULT_THRESHOLD,
-  isManualColor: false,
   manualEdits: [],
 }
 const rect = (bounds: Bounds): Selection => ({ ...common, type: 'rect', bounds })
@@ -115,5 +121,37 @@ describe('findSelectionAt', () => {
     expect(findSelectionAt([big, small], { x: 20, y: 20 })).toBe(1)
     expect(findSelectionAt([big, small], { x: 11, y: 11 })).toBe(0) // 橢圓的角落 → 只算大框
     expect(findSelectionAt([big, small], { x: 200, y: 200 })).toBe(-1)
+  })
+})
+
+describe('translateSelection', () => {
+  it('矩形、橢圓平移外框；套索平移每一個點', () => {
+    const moved = translateSelection(rect({ x: 10, y: 20, width: 5, height: 5 }), { x: 3, y: -4 })
+    expect(moved.type === 'rect' && moved.bounds).toEqual({ x: 13, y: 16, width: 5, height: 5 })
+
+    const movedLasso = translateSelection(lasso([{ x: 0, y: 0 }, { x: 4, y: 2 }, { x: 1, y: 5 }]), { x: 10, y: 10 })
+    expect(movedLasso.type === 'lasso' && movedLasso.points).toEqual([
+      { x: 10, y: 10 },
+      { x: 14, y: 12 },
+      { x: 11, y: 15 },
+    ])
+  })
+
+  it('不修改原本的範圍', () => {
+    const original = rect({ x: 10, y: 20, width: 5, height: 5 })
+    translateSelection(original, { x: 3, y: 3 })
+    expect(original.type === 'rect' && original.bounds.x).toBe(10)
+  })
+})
+
+describe('clampTranslation', () => {
+  const box = { x: 10, y: 10, width: 20, height: 20 }
+
+  it('在圖片範圍內時照原樣移動（取整數）', () => {
+    expect(clampTranslation(box, { x: 5.4, y: -3.6 }, 100, 100)).toEqual({ x: 5, y: -4 })
+  })
+
+  it('拖過頭時停在貼齊圖片邊緣的位置', () => {
+    expect(clampTranslation(box, { x: -50, y: 200 }, 100, 100)).toEqual({ x: -10, y: 70 })
   })
 })

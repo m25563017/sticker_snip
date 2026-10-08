@@ -5,7 +5,8 @@ import { useEditorStore } from '@/stores/editor'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
 import { DEFAULT_THRESHOLD, type Selection } from '@/types/selection'
 import type { PreviewBackdrop } from '@/types/preview'
-import PixelCanvas from '@/components/PixelCanvas.vue'
+import OutputPreview from '@/components/OutputPreview.vue'
+import OutputSettingsPanel from '@/components/OutputSettingsPanel.vue'
 import BackdropToggle from '@/components/BackdropToggle.vue'
 import FineTuneDialog from '@/components/FineTuneDialog.vue'
 
@@ -26,9 +27,7 @@ const fineTuneTarget = computed(() => editorStore.selections[fineTuneIndex.value
 
 /** 調整過的範圍加上標記，使用者回到檢查頁時一眼看出哪些已經處理過 */
 function isAdjusted(selection: Selection): boolean {
-  return (
-    selection.isManualColor || selection.threshold !== DEFAULT_THRESHOLD || selection.manualEdits.length > 0
-  )
+  return selection.threshold !== DEFAULT_THRESHOLD || selection.manualEdits.length > 0
 }
 
 function handleOpenFineTune(id: number): void {
@@ -42,9 +41,12 @@ function handleCloseFineTune(): void {
 
 <template>
   <section class="review-grid flex flex-col gap-4 h-full">
+    <!-- ======== 輸出設定：調整後下面的預覽即時反映 ======== -->
+    <OutputSettingsPanel class="mt-4" />
+
     <!-- ======== 說明 + 背景切換 ======== -->
-    <div class="flex items-center justify-between gap-4 pt-4">
-      <p class="text-sm opacity-70">確認每一張的去背效果，不滿意的點一下進入微調</p>
+    <div class="flex items-center justify-between gap-4">
+      <p class="text-sm opacity-70">確認每一張的去背與輸出效果，不滿意的點一下進入微調</p>
       <BackdropToggle v-model="backdrop" />
     </div>
 
@@ -60,8 +62,13 @@ function handleCloseFineTune(): void {
               </template>
             </span>
             <span class="review-grid__image preview-backdrop" :class="`preview-backdrop--${backdrop}`">
+              <!-- 依輸出設定排版後的樣子（外圍淡框是輸出圖片的邊界） -->
               <template v-if="props.previews.get(selection.id)">
-                <PixelCanvas :image="props.previews.get(selection.id)!" fit="contain" />
+                <OutputPreview
+                  :image="props.previews.get(selection.id)!"
+                  :size="editorStore.outputSettings.exportSize"
+                  :padding="editorStore.outputSettings.padding"
+                />
               </template>
             </span>
           </button>
@@ -107,7 +114,9 @@ function handleCloseFineTune(): void {
   }
 
   .review-grid__image {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     height: 200px;
   }

@@ -3,11 +3,9 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useEventListener } from '@vueuse/core'
 import { useEditorStore } from '@/stores/editor'
 import { cropSelection } from '@/lib/cropSelection'
-import { rgbToHex } from '@/lib/color'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
-import { sampleColor } from '@/lib/sampleColor'
 import type { PreviewBackdrop } from '@/types/preview'
-import type { Point, Selection } from '@/types/selection'
+import type { Selection } from '@/types/selection'
 import PixelCanvas from '@/components/PixelCanvas.vue'
 import BackdropToggle from '@/components/BackdropToggle.vue'
 import ManualEditPanel from '@/components/ManualEditPanel.vue'
@@ -35,12 +33,10 @@ const THRESHOLD_DEBOUNCE_MS = 100
 const editorStore = useEditorStore()
 
 // ======== 快照：打開彈窗時的設定，「還原到打開前」用 ========
-type TuningSnapshot = Pick<Selection, 'backgroundColor' | 'isManualColor' | 'threshold' | 'manualEdits'>
+type TuningSnapshot = Pick<Selection, 'threshold' | 'manualEdits'>
 
 function takeSnapshot(source: TuningSnapshot): TuningSnapshot {
   return {
-    backgroundColor: source.backgroundColor,
-    isManualColor: source.isManualColor,
     threshold: source.threshold,
     // 手動修改是多層的純資料（陣列裡有物件、物件裡又有陣列），用 JSON 來回轉一次做完整複製，
     // 快照才不會和目前的資料共用同一份陣列、被之後的修改連帶改掉
@@ -51,23 +47,12 @@ function takeSnapshot(source: TuningSnapshot): TuningSnapshot {
 /** 只在打開時拍一次；之後的修改都是即時套用，還原時整組蓋回去 */
 const snapshot = takeSnapshot(props.selection)
 
-/** 範圍的原圖（去背前），讓使用者在上面點選背景取色；origin 用來把點選位置換回原圖座標 */
+/** 範圍的原圖（去背前），只供對照；origin 用來把手動修改的位置換回原圖座標 */
 const originalRegion = computed(() => {
   const source = editorStore.sourcePixels
   return source ? cropSelection(source, props.selection) : null
 })
 const originalImage = computed(() => originalRegion.value?.image ?? null)
-
-// ======== 背景色 ========
-function handlePickColor(point: Point): void {
-  if (!originalImage.value) return
-  const color = sampleColor(originalImage.value, point.x, point.y)
-  editorStore.setManualBackgroundColor(props.selection.id, rgbToHex(color))
-}
-
-function handleResetColor(): void {
-  editorStore.resetToAutoBackgroundColor(props.selection.id)
-}
 
 // ======== 閾值 ========
 /**
@@ -153,13 +138,17 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
           </div>
         </header>
 
-        <!-- ======== 原圖（取色）與去背結果 ======== -->
+        <!-- ======== 原圖（只供對照、不可編輯）與去背結果 ======== -->
         <div class="grid grid-cols-2 gap-4">
           <figure class="flex flex-col gap-1">
-            <figcaption class="text-sm opacity-70">原圖：點選背景處重新取色</figcaption>
-            <div class="fine-tune-dialog__image fine-tune-dialog__image--pickable preview-backdrop preview-backdrop--checker">
+            <!--
+              原圖不接受任何點擊：所有會改變結果的操作都集中在右邊的去背結果上，
+              才都會記在同一個步驟清單裡，「復原上一步」退得回來
+            -->
+            <figcaption class="text-sm opacity-70">原圖（去背前，僅供對照）</figcaption>
+            <div class="fine-tune-dialog__image preview-backdrop preview-backdrop--checker">
               <template v-if="originalImage">
-                <PixelCanvas :image="originalImage" fit="contain" :loupe-radius="1" @pick="handlePickColor" />
+                <PixelCanvas :image="originalImage" fit="contain" />
               </template>
             </div>
           </figure>
@@ -176,15 +165,6 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
           <span class="text-sm w-16">背景色</span>
           <span class="fine-tune-dialog__swatch" :style="{ backgroundColor: props.selection.backgroundColor ?? 'transparent' }"></span>
           <code class="text-sm">{{ props.selection.backgroundColor ?? '—' }}</code>
-          <span class="text-sm opacity-60">{{ props.selection.isManualColor ? '（手動取色）' : '（自動偵測）' }}</span>
-          <button
-            type="button"
-            class="fine-tune-dialog__button inline-flex items-center gap-1"
-            :disabled="!props.selection.isManualColor"
-            @click="handleResetColor"
-          >
-            <AppIcon name="refresh" />恢復自動偵測
-          </button>
         </div>
 
         <!-- ======== 閾值 ======== -->
@@ -247,10 +227,6 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
 
   .fine-tune-dialog__image {
     height: 360px;
-
-    &.fine-tune-dialog__image--pickable {
-      cursor: crosshair;
-    }
   }
 
   .fine-tune-dialog__swatch {

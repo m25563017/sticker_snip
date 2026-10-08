@@ -54,7 +54,6 @@ describe('useEditorStore', () => {
 
     expect(created.backgroundColor).toBeNull()
     expect(created.threshold).toBe(DEFAULT_THRESHOLD)
-    expect(created.isManualColor).toBe(false)
     expect(created.whiteBorder.enabled).toBe(false)
   })
 
@@ -161,39 +160,19 @@ describe('useEditorStore', () => {
     expect(created.backgroundColor).toBeNull()
   })
 
-  it('手動指定過的背景色，重新偵測時不會被覆蓋', () => {
+  it('調整範圍大小、移動後，背景色會依新範圍重新偵測', () => {
     const store = useEditorStore()
     store.sourcePixels = makeTwoToneImage()
     const created = store.addSelection({ type: 'rect', bounds: { x: 0, y: 0, width: 10, height: 10 } })
-    store.updateSelection(created.id, { backgroundColor: '#123456', isManualColor: true })
+    expect(store.selections[0].backgroundColor).toBe('#ffffff')
 
-    store.refreshBackgroundColor(created.id)
-
-    expect(store.selections[0].backgroundColor).toBe('#123456')
-  })
-
-  it('滴管取色後標記為手動，之後重新偵測不會覆蓋', () => {
-    const store = useEditorStore()
-    store.sourcePixels = makeTwoToneImage()
-    const created = store.addSelection({ type: 'rect', bounds: { x: 0, y: 0, width: 10, height: 10 } })
-
-    store.setManualBackgroundColor(created.id, '#abcdef')
-    store.refreshBackgroundColor(created.id)
-
-    expect(store.selections[0].backgroundColor).toBe('#abcdef')
-    expect(store.selections[0].isManualColor).toBe(true)
-  })
-
-  it('恢復自動偵測：取消手動標記並重新偵測背景色', () => {
-    const store = useEditorStore()
-    store.sourcePixels = makeTwoToneImage()
-    const created = store.addSelection({ type: 'rect', bounds: { x: 10, y: 0, width: 10, height: 10 } })
-    store.setManualBackgroundColor(created.id, '#abcdef')
-
-    store.resetToAutoBackgroundColor(created.id)
-
-    expect(store.selections[0].isManualColor).toBe(false)
+    // 拉到右半邊（黃色）
+    store.resizeSelection(created.id, { x: 10, y: 0, width: 10, height: 10 })
     expect(store.selections[0].backgroundColor).toBe('#ffff00')
+
+    // 移回左半邊（白色）
+    store.moveSelection(created.id, { x: -10, y: 0 })
+    expect(store.selections[0].backgroundColor).toBe('#ffffff')
   })
 
   it('手動修改：魔術棒與橡皮擦依序記錄在同一個清單，座標四捨五入', () => {
@@ -290,6 +269,20 @@ describe('useEditorStore', () => {
       const kept = store.selections.find((item) => item.id === resized.id)
       expect(kept?.createdBy).toBe('manual')
       expect(kept?.type === 'rect' && kept.bounds).toEqual(newBounds)
+    })
+
+    it('移動過的自動範圍改為手動，位置更新並保留', () => {
+      const store = useEditorStore()
+      store.loadImage(fakeBitmap, makeTwoStickers())
+      const moved = store.selections[0]
+      const before = moved.type === 'rect' ? moved.bounds : null
+
+      store.moveSelection(moved.id, { x: 2, y: 3 })
+      store.autoDetect()
+
+      const kept = store.selections.find((item) => item.id === moved.id)
+      expect(kept?.createdBy).toBe('manual')
+      expect(kept?.type === 'rect' && kept.bounds).toEqual({ ...before, x: before!.x + 2, y: before!.y + 3 })
     })
 
     it('高亮中的是自動範圍時，重新偵測後清掉高亮（舊範圍已被替換）', () => {

@@ -1,11 +1,14 @@
 import { computed, ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
+import { useStorage } from '@vueuse/core'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
 import { cropSelection } from '@/lib/cropSelection'
 import { detectBackgroundColor } from '@/lib/detectBackgroundColor'
 import { rgbToHex } from '@/lib/color'
 import { defaultMergeDistance, detectStickers } from '@/lib/detectStickers'
+import { translateSelection } from '@/lib/selectionShape'
 import type { EdgeQuality } from '@/lib/refineEdges'
+import { DEFAULT_EXPORT_SIZE, DEFAULT_PADDING, type ExportSize } from '@/lib/composeOutput'
 import {
   createDefaultWhiteBorder,
   DEFAULT_THRESHOLD,
@@ -21,10 +24,13 @@ import {
 /** 工作階段：先框選所有範圍，再進入檢查階段統一預覽結果、針對不滿意的微調後匯出 */
 export type EditorStage = 'select' | 'review'
 
-/** 套用到所有範圍的輸出設定（需求 4.2），目前只放 M1 實際用到的欄位 */
+/** 套用到所有範圍的輸出設定（需求 4.2） */
 export interface OutputSettings {
   filePrefix: string
   edgeQuality: EdgeQuality
+  exportSize: ExportSize
+  /** 輸出圖片四周的留白，單位是輸出圖片的 px */
+  padding: number
 }
 
 export const useEditorStore = defineStore('editor', () => {
@@ -45,10 +51,16 @@ export const useEditorStore = defineStore('editor', () => {
   const drawShape = ref<SelectionType>('rect')
   /** 自動偵測時，前景像素相距多少 px 以內算同一張貼紙；換新圖時依圖片大小重設 */
   const mergeDistance = ref(1)
-  const outputSettings = ref<OutputSettings>({
-    filePrefix: 'sticker_',
-    edgeQuality: 'smooth',
-  })
+  /**
+   * 輸出設定記在瀏覽器裡，下次打開還是上次的設定（例如固定用的檔名前綴）。
+   * mergeDefaults：之後新增欄位時，舊的存檔缺少的欄位會自動補上預設值。
+   */
+  const outputSettings = useStorage<OutputSettings>(
+    'sticker-snip:output-settings',
+    { filePrefix: 'sticker_', edgeQuality: 'smooth', exportSize: DEFAULT_EXPORT_SIZE, padding: DEFAULT_PADDING },
+    undefined,
+    { mergeDefaults: true },
+  )
 
   // ======== 選取範圍 ========
   const selections = ref<Selection[]>([])
@@ -112,6 +124,17 @@ export const useEditorStore = defineStore('editor', () => {
     refreshBackgroundColor(id)
   }
 
+  /**
+   * 拖曳移動範圍。跟調整大小一樣，移動過的自動範圍改標記為手動，重新偵測時不會被洗掉；
+   * 框到的內容變了，背景色也要重新偵測。
+   */
+  function moveSelection(id: number, offset: Point): void {
+    const index = selections.value.findIndex((item) => item.id === id)
+    if (index < 0) return
+    selections.value[index] = { ...translateSelection(selections.value[index], offset), createdBy: 'manual' }
+    refreshBackgroundColor(id)
+  }
+
   function addSelection(shape: SelectionShape, createdBy: SelectionCreatedBy = 'manual'): Selection {
     const created: Selection = {
       ...shape,
@@ -120,7 +143,6 @@ export const useEditorStore = defineStore('editor', () => {
       whiteBorder: createDefaultWhiteBorder(),
       backgroundColor: null,
       threshold: DEFAULT_THRESHOLD,
-      isManualColor: false,
       manualEdits: [],
     }
     selections.value.push(created)
@@ -129,27 +151,17 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   /**
-   * 針對單一範圍重新偵測背景色。新增範圍時會呼叫；之後支援調整範圍大小時也要呼叫。
-   * 使用者用滴管手動指定過的顏色不覆蓋，尊重使用者的判斷優先於演算法。
+   * 針對單一範圍重新偵測背景色。新增、調整大小、移動範圍時都會呼叫。
+   * 背景色一律自動偵測：實測框有留白時 51 張全對，只有框到貼齊貼紙邊緣才可能判錯，
+   * 這時把框拉大一點就會重新偵測修正，不需要另外提供手動指定。
    */
   function refreshBackgroundColor(id: number): void {
     const pixels = sourcePixels.value
     const target = selections.value.find((item) => item.id === id)
-    if (!pixels || !target || target.isManualColor) return
+    if (!pixels || !target) return
 
     const { image, mask } = cropSelection(pixels, target)
     target.backgroundColor = rgbToHex(detectBackgroundColor(image, mask))
-  }
-
-  /** 滴管取色：掛上「手動」標記，之後重新偵測時就不會蓋掉使用者選的顏色 */
-  function setManualBackgroundColor(id: number, color: string): void {
-    updateSelection(id, { backgroundColor: color, isManualColor: true })
-  }
-
-  /** 取消手動指定，回到演算法自動偵測的背景色 */
-  function resetToAutoBackgroundColor(id: number): void {
-    updateSelection(id, { isManualColor: false })
-    refreshBackgroundColor(id)
   }
 
   // ======== 微調：魔術棒、橡皮擦 ========
@@ -222,13 +234,12 @@ export const useEditorStore = defineStore('editor', () => {
     autoDetect,
     clearAutoSelections,
     resizeSelection,
+    moveSelection,
     addSelection,
     removeSelection,
     removeActiveSelection,
     updateSelection,
     refreshBackgroundColor,
-    setManualBackgroundColor,
-    resetToAutoBackgroundColor,
     addManualEdit,
     undoManualEdit,
     clearManualEdits,

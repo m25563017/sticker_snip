@@ -4,8 +4,15 @@ import { boundsToDisplay, clampPoint, displayToSource, sourceToDisplay } from '@
 import { HANDLE_SIZE } from '@/lib/overlayRenderer'
 import { isRectTooSmall, rectFromPoints } from '@/lib/rect'
 import { HANDLE_CURSORS, hitTestHandle, resizeBounds, type ResizeHandle } from '@/lib/resizeHandles'
-import { findSelectionAt, pointsBounds } from '@/lib/selectionShape'
-import type { Bounds, Point, RectLikeSelection } from '@/types/selection'
+import {
+  clampTranslation,
+  containsPoint,
+  findSelectionAt,
+  pointsBounds,
+  selectionBounds,
+  translateSelection,
+} from '@/lib/selectionShape'
+import type { Bounds, Point, Selection } from '@/types/selection'
 
 /** 拖曳小於這個「螢幕像素」就當成點擊。用螢幕像素而非原圖像素，手感才不會隨縮放比例改變 */
 const MIN_DRAG_DISPLAY_SIZE = 5
@@ -18,13 +25,16 @@ const LASSO_POINT_SPACING = 3
  * 按住左鍵後進行中的操作（座標皆為原圖座標）：
  * - draw：拖曳對角線畫矩形或橢圓；拖不到門檻就當成點擊，用來選取範圍
  * - lasso：按住自由描邊，放開時自動封閉；同樣太小就當成點擊
- * - resize：拖曳控制點調整大小；放開前只改這裡的 current，不寫進 store，
- *   避免每移動一下就觸發重新偵測背景色、重算縮圖
+ * - resize：拖曳控制點調整大小
+ * - move：在選取中的範圍裡拖曳，整個平移（三種形狀都可以）
+ * resize、move 放開前只改這裡的暫存值，不寫進 store，
+ * 避免每移動一下就觸發重新偵測背景色、重算縮圖
  */
 export type CanvasInteraction =
   | { kind: 'draw'; shape: 'rect' | 'ellipse'; start: Point; current: Point }
   | { kind: 'lasso'; points: Point[] }
   | { kind: 'resize'; id: number; handle: ResizeHandle; original: Bounds; current: Bounds }
+  | { kind: 'move'; id: number; start: Point; offset: Point }
 
 interface Options {
   overlayRef: Ref<HTMLCanvasElement | null>
@@ -46,21 +56,28 @@ export function useCanvasInteraction({ overlayRef, displayScale, onChange }: Opt
 
   const minSourceSize = computed(() => MIN_DRAG_DISPLAY_SIZE / displayScale.value)
 
+  const activeSelection = computed(() =>
+    editorStore.selections.find((item) => item.id === editorStore.activeSelectionId),
+  )
   /** 目前選取、而且可以調整大小的範圍（矩形、橢圓）；套索只能刪掉重畫，不顯示控制點 */
   const activeResizable = computed(() => {
-    const active = editorStore.selections.find((item) => item.id === editorStore.activeSelectionId)
+    const active = activeSelection.value
     return active && active.type !== 'lasso' ? active : undefined
   })
 
   const cursor = computed(() => {
     const active = interaction.value
-    return active?.kind === 'resize' ? HANDLE_CURSORS[active.handle] : hoverCursor.value
+    if (active?.kind === 'resize') return HANDLE_CURSORS[active.handle]
+    if (active?.kind === 'move') return 'move'
+    return hoverCursor.value
   })
 
-  /** 調整大小拖曳中的範圍，顯示拖曳中的外框，其餘顯示 store 裡的外框 */
-  function currentBounds(selection: RectLikeSelection): Bounds {
+  /** 畫面上要顯示的樣子：拖曳中的範圍套用暫存的大小或位置，其餘照 store 裡的資料 */
+  function displayedSelection(selection: Selection): Selection {
     const active = interaction.value
-    return active?.kind === 'resize' && active.id === selection.id ? active.current : selection.bounds
+    if (!active || !('id' in active) || active.id !== selection.id) return selection
+    if (active.kind === 'move') return translateSelection(selection, active.offset)
+    return selection.type === 'lasso' ? selection : { ...selection, bounds: active.current }
   }
 
   /**
@@ -93,6 +110,11 @@ export function useCanvasInteraction({ overlayRef, displayScale, onChange }: Opt
     onChange()
   }
 
+  /** 游標是否在目前選取的範圍裡面（依形狀判斷）；在裡面按下去是移動，不是畫新框 */
+  function isInsideActive(point: Point): boolean {
+    return activeSelection.value !== undefined && containsPoint(activeSelection.value, point)
+  }
+
   function handlePointerDown(event: PointerEvent): void {
     // 只接受左鍵，避免右鍵開選單時意外開始框選
     if (event.button !== 0) return
@@ -102,9 +124,12 @@ export function useCanvasInteraction({ overlayRef, displayScale, onChange }: Opt
     const handle = handleAt(point)
     const shape = editorStore.drawShape
 
+    // 控制點優先於「在範圍裡面」：控制點有一半落在範圍內，不先判斷的話會被當成移動
     if (activeResizable.value && handle) {
       const { id, bounds } = activeResizable.value
       interaction.value = { kind: 'resize', id, handle, original: bounds, current: bounds }
+    } else if (activeSelection.value && isInsideActive(point)) {
+      interaction.value = { kind: 'move', id: activeSelection.value.id, start: point, offset: { x: 0, y: 0 } }
     } else if (shape === 'lasso') {
       interaction.value = { kind: 'lasso', points: [point] }
     } else {
@@ -118,7 +143,7 @@ export function useCanvasInteraction({ overlayRef, displayScale, onChange }: Opt
 
     if (!active) {
       const handle = handleAt(point)
-      hoverCursor.value = handle ? HANDLE_CURSORS[handle] : 'crosshair'
+      hoverCursor.value = handle ? HANDLE_CURSORS[handle] : isInsideActive(point) ? 'move' : 'crosshair'
       return
     }
 
@@ -128,6 +153,13 @@ export function useCanvasInteraction({ overlayRef, displayScale, onChange }: Opt
       const last = active.points[active.points.length - 1]
       const movedOnScreen = Math.hypot(point.x - last.x, point.y - last.y) * displayScale.value
       if (movedOnScreen >= LASSO_POINT_SPACING) active.points.push(point)
+    } else if (active.kind === 'move') {
+      const target = editorStore.selections.find((item) => item.id === active.id)
+      const bitmap = editorStore.sourceBitmap
+      if (target && bitmap) {
+        const wanted = { x: point.x - active.start.x, y: point.y - active.start.y }
+        active.offset = clampTranslation(selectionBounds(target), wanted, bitmap.width, bitmap.height)
+      }
     } else {
       const resized = resizeBounds(active.original, active.handle, point)
       // 縮到比門檻小就停在上一個合法的大小，不讓框消失
@@ -153,6 +185,12 @@ export function useCanvasInteraction({ overlayRef, displayScale, onChange }: Opt
 
     if (active.kind === 'resize') {
       finishResize(active.id, active.original, active.current)
+      return
+    }
+    if (active.kind === 'move') {
+      // 只點了一下沒有拖動：不算移動，否則自動範圍會被誤標成手動
+      if (active.offset.x !== 0 || active.offset.y !== 0) editorStore.moveSelection(active.id, active.offset)
+      onChange()
       return
     }
 
@@ -199,7 +237,7 @@ export function useCanvasInteraction({ overlayRef, displayScale, onChange }: Opt
     interaction,
     cursor,
     activeResizable,
-    currentBounds,
+    displayedSelection,
     handlePointerDown,
     handlePointerMove,
     handlePointerUp,

@@ -30,7 +30,6 @@ function makeSelection(backgroundColor: string | null): RectLikeSelection {
     whiteBorder: createDefaultWhiteBorder(),
     backgroundColor,
     threshold: DEFAULT_THRESHOLD,
-    isManualColor: false,
     manualEdits: [],
   }
 }

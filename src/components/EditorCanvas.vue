@@ -27,7 +27,7 @@ const {
   interaction,
   cursor,
   activeResizable,
-  currentBounds,
+  displayedSelection,
   handlePointerDown,
   handlePointerMove,
   handlePointerUp,
@@ -76,7 +76,9 @@ function redraw(): void {
 const toDisplayBounds = (bounds: Bounds) => boundsToDisplay(bounds, displayScale.value)
 const toDisplayPoints = (points: Point[]) => points.map((point) => sourceToDisplay(point, displayScale.value))
 
-function toFrame(selection: Selection, index: number): OverlayFrame {
+function toFrame(stored: Selection, index: number): OverlayFrame {
+  // 拖曳中（移動、調整大小）的範圍顯示暫存的位置與大小
+  const selection = displayedSelection(stored)
   const isActive = selection.id === editorStore.activeSelectionId
   // 顯示「排在第幾個」而非 id：刪除後後面的自動往前遞補，與縮圖列表、匯出檔名一致
   const label = index + 1
@@ -84,7 +86,7 @@ function toFrame(selection: Selection, index: number): OverlayFrame {
     const bounds = toDisplayBounds(selectionBounds(selection))
     return { shape: 'lasso', bounds, points: toDisplayPoints(selection.points), isActive, label }
   }
-  return { shape: selection.type, bounds: toDisplayBounds(currentBounds(selection)), isActive, label }
+  return { shape: selection.type, bounds: toDisplayBounds(selection.bounds), isActive, label }
 }
 
 /** 清空 overlay，再把所有已存的範圍、拖曳中的框與控制點重新畫一次 */
@@ -101,7 +103,8 @@ function redrawOverlay(): void {
     const bounds = toDisplayBounds(pointsBounds(active.points))
     frames.push({ shape: 'lasso', bounds, points: toDisplayPoints(active.points), isActive: false, isDraft: true })
   }
-  const handleBounds = activeResizable.value ? toDisplayBounds(currentBounds(activeResizable.value)) : null
+  const resizable = activeResizable.value && displayedSelection(activeResizable.value)
+  const handleBounds = resizable && resizable.type !== 'lasso' ? toDisplayBounds(resizable.bounds) : null
 
   drawOverlay(ctx, frames, handleBounds)
 }

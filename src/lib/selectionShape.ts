@@ -27,6 +27,28 @@ export function pointsBounds(points: Point[]): Bounds {
   }
 }
 
+/** 整個範圍平移 offset，三種形狀都不變形（套索也可以移動，只是不能調整大小） */
+export function translateSelection<T extends Selection>(selection: T, offset: Point): T {
+  if (selection.type === 'lasso') {
+    return { ...selection, points: selection.points.map((point) => ({ x: point.x + offset.x, y: point.y + offset.y })) }
+  }
+  const { bounds } = selection
+  return { ...selection, bounds: { ...bounds, x: bounds.x + offset.x, y: bounds.y + offset.y } }
+}
+
+/**
+ * 限制平移量，讓外框不會被拖出圖片：最多移到外框貼齊圖片邊緣為止。
+ * 平移量取整數，範圍的座標才會維持在完整像素上。
+ */
+export function clampTranslation(bounds: Bounds, offset: Point, imageWidth: number, imageHeight: number): Point {
+  const clampAxis = (value: number, start: number, size: number, limit: number) =>
+    Math.round(Math.min(Math.max(value, -start), limit - (start + size)))
+  return {
+    x: clampAxis(offset.x, bounds.x, bounds.width, imageWidth),
+    y: clampAxis(offset.y, bounds.y, bounds.height, imageHeight),
+  }
+}
+
 function isInsideEllipse(bounds: Bounds, x: number, y: number): boolean {
   const radiusX = bounds.width / 2
   const radiusY = bounds.height / 2

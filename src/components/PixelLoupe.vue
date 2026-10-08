@@ -13,7 +13,7 @@ const props = defineProps<{
   clientX: number
   clientY: number
   /**
-   * 點下去實際會用到的範圍半徑：滴管取 3×3 平均 → 1；魔術棒只看一格 → 0。
+   * 點下去實際會用到的範圍半徑（魔術棒只看點到的那一格 → 0）。
    * 中央方框與下方色碼都依這個範圍呈現，讓使用者看到的就是點下去會發生的事。
    */
   selectRadius: number

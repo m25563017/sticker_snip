@@ -2,8 +2,8 @@ import type { RgbColor } from './color'
 import type { PixelBuffer } from './pixelBuffer'
 
 /**
- * 滴管取色：取 (x, y) 周圍 (2 × radius + 1)² 格的平均色，而不是單一像素。
- * 原圖多半是 JPG，點到的那一格可能剛好是壓縮雜點，取平均才能代表那一帶真正的背景色。
+ * 取 (x, y) 周圍 (2 × radius + 1)² 格的平均色；radius = 0 就是單一像素的顏色。
+ * 原圖多半是 JPG，單一格可能剛好是壓縮雜點，需要代表「那一帶」的顏色時可以取平均。
  * 靠近邊緣時只平均落在圖片內的格子。
  */
 export function sampleColor(image: PixelBuffer, x: number, y: number, radius = 1): RgbColor {

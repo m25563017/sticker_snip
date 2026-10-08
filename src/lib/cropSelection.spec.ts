@@ -30,7 +30,6 @@ function makeRectSelection(bounds: Bounds): Selection {
     whiteBorder: createDefaultWhiteBorder(),
     backgroundColor: null,
     threshold: DEFAULT_THRESHOLD,
-    isManualColor: false,
     manualEdits: [],
   }
 }
