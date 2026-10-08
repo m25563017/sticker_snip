@@ -1,17 +1,22 @@
 import { outputLayout, type ExportSize, type OutputLayout } from './composeOutput'
 import type { PixelBuffer } from './pixelBuffer'
 import { applyBorder, type BorderSettings } from './stickerBorder'
+import { applyShadow, shadowReach, type ShadowSettings } from './stickerShadow'
 
 /** 輸出時會用到的設定（OutputSettings 的一部分），只列這裡需要的，避免 lib 依賴 store 的型別 */
 export interface RenderSettings {
   exportSize: ExportSize
   padding: number
   border: BorderSettings
+  shadow: ShadowSettings
 }
 
-/** 白邊往貼紙外延伸多寬：排版要預留這麼多空間，白邊才不會被畫布切掉 */
-function effectMargin(settings: RenderSettings): number {
-  return settings.border.enabled ? settings.border.thickness : 0
+/**
+ * 效果往貼紙外延伸多寬（白邊 + 陰影）：排版要預留這麼多空間，效果才不會被畫布切掉。
+ * 陰影只往一個方向落，但四周都預留同樣的空間，貼紙才會維持置中。
+ */
+export function effectMargin(settings: RenderSettings): number {
+  return (settings.border.enabled ? settings.border.thickness : 0) + shadowReach(settings.shadow)
 }
 
 /**
@@ -37,16 +42,24 @@ function placeOnCanvas(content: PixelBuffer, layout: OutputLayout, scale: number
 }
 
 /**
- * 產生最終輸出的圖：排版（尺寸、邊距、預留白邊空間）→ 縮放擺放 → 白邊。
+ * 產生最終輸出的圖：排版（尺寸、邊距、預留效果空間）→ 縮放擺放 → 白邊 → 陰影。
+ * 陰影在白邊之後：白邊也是貼紙的一部分，陰影要從白邊外緣開始。
  * 預覽與匯出都走這一條，看到的就是下載到的。
  *
  * @param content 已經裁掉透明空白的貼紙（trimTransparent 的結果）
- * @param maxSide 預覽用：把整張輸出等比縮到長邊不超過這個值，白邊粗細也跟著縮放，比例和實際輸出一致。
+ * @param maxSide 預覽用：把整張輸出等比縮到長邊不超過這個值，效果的長度也跟著縮放，比例和實際輸出一致。
  *   匯出時不傳，以實際輸出尺寸計算。
  */
 export function renderOutput(content: PixelBuffer, settings: RenderSettings, maxSide?: number): PixelBuffer {
   const layout = outputLayout(content.width, content.height, settings.exportSize, settings.padding, effectMargin(settings))
   const scale = maxSide ? maxSide / Math.max(layout.canvasWidth, layout.canvasHeight) : 1
   const placed = placeOnCanvas(content, layout, scale)
-  return applyBorder(placed, { ...settings.border, thickness: settings.border.thickness * scale })
+  const { border, shadow } = settings
+  const bordered = applyBorder(placed, { ...border, thickness: border.thickness * scale })
+  return applyShadow(bordered, {
+    ...shadow,
+    distance: shadow.distance * scale,
+    spread: shadow.spread * scale,
+    size: shadow.size * scale,
+  })
 }

@@ -10,6 +10,7 @@ import { translateSelection } from '@/lib/selectionShape'
 import type { EdgeQuality } from '@/lib/refineEdges'
 import { DEFAULT_EXPORT_SIZE, DEFAULT_PADDING, type ExportSize } from '@/lib/composeOutput'
 import { DEFAULT_BORDER, type BorderSettings } from '@/lib/stickerBorder'
+import { DEFAULT_SHADOW, type ShadowSettings } from '@/lib/stickerShadow'
 import {
   DEFAULT_THRESHOLD,
   type Bounds,
@@ -29,9 +30,10 @@ export interface OutputSettings {
   filePrefix: string
   edgeQuality: EdgeQuality
   exportSize: ExportSize
-  /** 輸出圖片四周的留白，單位是輸出圖片的 px，量到最外層效果（白邊）的外緣 */
+  /** 輸出圖片四周的留白，單位是輸出圖片的 px，量到最外層效果（白邊、陰影）的外緣 */
   padding: number
   border: BorderSettings
+  shadow: ShadowSettings
 }
 
 export const useEditorStore = defineStore('editor', () => {
@@ -64,6 +66,7 @@ export const useEditorStore = defineStore('editor', () => {
       exportSize: DEFAULT_EXPORT_SIZE,
       padding: DEFAULT_PADDING,
       border: { ...DEFAULT_BORDER },
+      shadow: { ...DEFAULT_SHADOW },
     },
     undefined,
     { mergeDefaults: true },

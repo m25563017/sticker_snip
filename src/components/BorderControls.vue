@@ -33,11 +33,11 @@ function handleThicknessInput(event: Event): void {
 
 <template>
   <EffectSection title="白邊" :enabled="border.enabled" @update:enabled="handleEnabledChange">
-    <label class="border-controls__row">
+    <label class="effect-section__row">
       <span>顏色</span>
       <input type="color" :value="border.color" @input="handleColorInput" />
     </label>
-    <label class="border-controls__row">
+    <label class="effect-section__row">
       <span>粗細</span>
       <input type="range" min="1" :max="MAX_THICKNESS" step="1" :value="border.thickness" @input="handleThicknessInput" />
       <span class="w-12 text-right">{{ border.thickness }} px</span>
@@ -45,12 +45,3 @@ function handleThicknessInput(event: Event): void {
   </EffectSection>
 </template>
 
-<style scoped>
-.border-controls__row {
-  display: grid;
-  grid-template-columns: 3.5rem 1fr auto;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.875rem;
-}
-</style>

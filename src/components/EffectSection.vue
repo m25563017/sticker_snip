@@ -39,5 +39,17 @@ function handleToggle(event: Event): void {
   .effect-section__header {
     cursor: pointer;
   }
+
+  /*
+   * 各效果的設定列共用同一種排版（標籤、控制項、數值三欄對齊）。
+   * 列是從外面以 slot 塞進來的，要用 :slotted 才套得到；集中在這裡，各效果元件不必各寫一份。
+   */
+  :slotted(.effect-section__row) {
+    display: grid;
+    grid-template-columns: 3.5rem 1fr auto;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+  }
 }
 </style>

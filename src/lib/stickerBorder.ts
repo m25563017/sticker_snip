@@ -1,3 +1,5 @@
+import { hexToRgb } from './color'
+import { drawUnder } from './compositing'
 import { forEachComponent } from './connectedComponents'
 import type { PixelBuffer } from './pixelBuffer'
 
@@ -160,33 +162,11 @@ function ignoreSpecks(solid: Uint8Array, width: number, height: number): void {
 }
 
 /**
- * 把白邊畫在貼紙下面：白邊色 × 覆蓋程度當底，貼紙以一般的「疊在上面」方式合成。
- * 回傳新的 PixelBuffer，不修改傳入的 image；畫布大小不變，呼叫端要先預留白邊的空間。
+ * 把白邊畫在貼紙下面。回傳新的 PixelBuffer，不修改傳入的 image；
+ * 畫布大小不變，呼叫端要先預留白邊的空間。
  */
 export function applyBorder(image: PixelBuffer, border: BorderSettings): PixelBuffer {
   const { width, height, data } = image
   if (!border.enabled || border.thickness <= 0) return { data: new Uint8ClampedArray(data), width, height }
-
-  const coverage = borderCoverage(image, border.thickness)
-  const red = Number.parseInt(border.color.slice(1, 3), 16)
-  const green = Number.parseInt(border.color.slice(3, 5), 16)
-  const blue = Number.parseInt(border.color.slice(5, 7), 16)
-  const output = new Uint8ClampedArray(data.length)
-
-  for (let i = 0; i < width * height; i++) {
-    const o = i * 4
-    const borderAlpha = coverage[i]
-    const stickerAlpha = data[o + 3] / 255
-    // 「貼紙疊在白邊上」的 alpha 合成：上層顯示多少、剩下的讓下層透出來
-    const alpha = stickerAlpha + borderAlpha * (1 - stickerAlpha)
-    if (alpha === 0) continue
-    const mix = (sticker: number, below: number) =>
-      (sticker * stickerAlpha + below * borderAlpha * (1 - stickerAlpha)) / alpha
-    output[o] = mix(data[o], red)
-    output[o + 1] = mix(data[o + 1], green)
-    output[o + 2] = mix(data[o + 2], blue)
-    output[o + 3] = alpha * 255
-  }
-
-  return { data: output, width, height }
+  return drawUnder(image, borderCoverage(image, border.thickness), hexToRgb(border.color))
 }
