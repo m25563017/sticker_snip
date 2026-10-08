@@ -1,4 +1,4 @@
-import type { Point } from '@/types/selection'
+import type { Bounds, Point } from '@/types/selection'
 import { computeContainSize } from './canvas'
 
 /**
@@ -19,6 +19,11 @@ export function displayToSource(point: Point, scale: number): Point {
 /** 原圖上的位置 → 畫面上要畫的位置 */
 export function sourceToDisplay(point: Point, scale: number): Point {
   return { x: point.x * scale, y: point.y * scale }
+}
+
+/** 原圖上的外框 → 畫面上的外框 */
+export function boundsToDisplay(bounds: Bounds, scale: number): Bounds {
+  return { x: bounds.x * scale, y: bounds.y * scale, width: bounds.width * scale, height: bounds.height * scale }
 }
 
 /**

@@ -107,6 +107,24 @@ describe('processSelection', () => {
     expect(alphaAt(result, 10, 3)).toBe(0) // 右邊殘留的細條被清雜點清掉
   })
 
+  it('橢圓範圍：形狀外的四個角落即使是物件顏色，輸出也是透明的', () => {
+    // 整張 10×10 都是紅色（沒有背景），用橢圓框住
+    const width = 10
+    const height = 10
+    const data = new Uint8ClampedArray(width * height * 4).fill(255)
+    for (let i = 0; i < width * height; i++) {
+      data[i * 4 + 1] = 0
+      data[i * 4 + 2] = 0
+    }
+    const selection: Selection = { ...makeSelection('#ffffff'), type: 'ellipse', bounds: { x: 0, y: 0, width, height } }
+
+    const result = processSelection({ data, width, height }, selection, 'pixel')
+
+    expect(alphaAt(result, 0, 0)).toBe(0)
+    expect(alphaAt(result, 9, 9)).toBe(0)
+    expect(alphaAt(result, 5, 5)).toBe(255)
+  })
+
   it('背景色尚未偵測時只裁切、不去背', () => {
     const result = processSelection(makeSourceImage(), makeSelection(null), 'smooth')
 

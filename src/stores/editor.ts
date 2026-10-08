@@ -15,6 +15,7 @@ import {
   type Selection,
   type SelectionCreatedBy,
   type SelectionShape,
+  type SelectionType,
 } from '@/types/selection'
 
 /** 工作階段：先框選所有範圍，再進入檢查階段統一預覽結果、針對不滿意的微調後匯出 */
@@ -40,6 +41,8 @@ export const useEditorStore = defineStore('editor', () => {
 
   // ======== 模式與輸出設定 ========
   const stage = ref<EditorStage>('select')
+  /** 手動框選時要畫的形狀（需求 4.3）；自動偵測一律產生矩形 */
+  const drawShape = ref<SelectionType>('rect')
   /** 自動偵測時，前景像素相距多少 px 以內算同一張貼紙；換新圖時依圖片大小重設 */
   const mergeDistance = ref(1)
   const outputSettings = ref<OutputSettings>({
@@ -102,6 +105,7 @@ export const useEditorStore = defineStore('editor', () => {
    */
   function resizeSelection(id: number, bounds: Bounds): void {
     const target = selections.value.find((item) => item.id === id)
+    // 套索是自由描繪的路徑，拉伸外框容易變形，規格上只能刪掉重畫
     if (!target || target.type === 'lasso') return
     target.bounds = bounds
     target.createdBy = 'manual'
@@ -207,6 +211,7 @@ export const useEditorStore = defineStore('editor', () => {
     sourceBitmap,
     sourcePixels,
     stage,
+    drawShape,
     mergeDistance,
     outputSettings,
     selections,

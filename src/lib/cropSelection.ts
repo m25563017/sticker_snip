@@ -1,5 +1,6 @@
 import type { Bounds, Point, Selection } from '@/types/selection'
 import type { PixelBuffer } from './pixelBuffer'
+import { createShapeMask, selectionBounds } from './selectionShape'
 
 /**
  * 形狀遮罩：長度 = width × height，每格對應裁切結果的一個像素。
@@ -47,31 +48,15 @@ function copyPixels(source: PixelBuffer, bounds: Bounds): PixelBuffer {
   return { data, width, height }
 }
 
-function createShapeMask(selection: Selection, width: number, height: number): ShapeMask {
-  switch (selection.type) {
-    case 'rect':
-      return new Uint8Array(width * height).fill(1)
-    case 'ellipse':
-    case 'lasso':
-      // M1 只有矩形框選工具，這兩種形狀的遮罩之後的里程碑再實作
-      throw new Error(`尚未支援 ${selection.type} 形狀的遮罩`)
-  }
-}
-
 /**
- * 依選取範圍從原圖裁出像素，並產生對應的形狀遮罩。
+ * 依選取範圍從原圖裁出像素（取形狀的外框），並產生對應的形狀遮罩。
  * 回傳的 image 是新的陣列，之後去背直接改它也不會動到原圖。
  */
 export function cropSelection(source: PixelBuffer, selection: Selection): CroppedRegion {
-  // 套索沒有 bounds，屆時會改成由路徑點算出外接矩形
-  if (selection.type === 'lasso') {
-    throw new Error('尚未支援 lasso 形狀的裁切')
-  }
-
-  const bounds = clampBounds(selection.bounds, source.width, source.height)
+  const bounds = clampBounds(selectionBounds(selection), source.width, source.height)
   return {
     image: copyPixels(source, bounds),
-    mask: createShapeMask(selection, bounds.width, bounds.height),
+    mask: createShapeMask(selection, bounds),
     origin: { x: bounds.x, y: bounds.y },
   }
 }

@@ -5,6 +5,7 @@ import type { PixelBuffer } from '@/lib/pixelBuffer'
 import type { PreviewBackdrop } from '@/types/preview'
 import type { Point, Selection } from '@/types/selection'
 import PixelCanvas from '@/components/PixelCanvas.vue'
+import AppIcon, { type IconName } from '@/components/AppIcon.vue'
 
 /**
  * 微調彈窗中的「手動修改」：在去背結果上用魔術棒或橡皮擦修正。
@@ -19,9 +20,9 @@ const props = defineProps<{
 }>()
 
 type EditTool = 'wand' | 'erase'
-const TOOLS: { value: EditTool; label: string }[] = [
-  { value: 'wand', label: '魔術棒' },
-  { value: 'erase', label: '橡皮擦' },
+const TOOLS: { value: EditTool; label: string; icon: IconName }[] = [
+  { value: 'wand', label: '魔術棒', icon: 'wand' },
+  { value: 'erase', label: '橡皮擦', icon: 'eraser' },
 ]
 /** 筆刷大小（直徑）預設為範圍短邊的 5%，範圍 300 px 約 15 px */
 const BRUSH_SIZE_RATIO = 0.05
@@ -88,12 +89,12 @@ function handleClearEdits(): void {
       <template v-for="tool in TOOLS" :key="tool.value">
         <button
           type="button"
-          class="manual-edit-panel__tool"
+          class="manual-edit-panel__tool inline-flex items-center gap-1"
           :class="{ 'manual-edit-panel__tool--active': activeTool === tool.value }"
           :aria-pressed="activeTool === tool.value"
           @click="handleSelectTool(tool.value)"
         >
-          {{ tool.label }}
+          <AppIcon :name="tool.icon" />{{ tool.label }}
         </button>
       </template>
       <template v-if="activeTool === 'erase'">
@@ -130,19 +131,19 @@ function handleClearEdits(): void {
     <div class="flex items-center gap-2">
       <button
         type="button"
-        class="manual-edit-panel__button"
+        class="manual-edit-panel__button inline-flex items-center gap-1"
         :disabled="props.selection.manualEdits.length === 0"
         @click="handleUndoEdit"
       >
-        復原上一步
+        <AppIcon name="undo" />復原上一步
       </button>
       <button
         type="button"
-        class="manual-edit-panel__button"
+        class="manual-edit-panel__button inline-flex items-center gap-1"
         :disabled="props.selection.manualEdits.length === 0"
         @click="handleClearEdits"
       >
-        全部清除
+        <AppIcon name="trash" />全部清除
       </button>
     </div>
   </figure>

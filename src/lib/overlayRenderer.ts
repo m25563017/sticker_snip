@@ -1,4 +1,4 @@
-import type { Bounds } from '@/types/selection'
+import type { Bounds, Point, SelectionType } from '@/types/selection'
 import { handlePositions } from './resizeHandles'
 
 /**
@@ -19,7 +19,11 @@ const LABEL_HEIGHT = 18
 export const HANDLE_SIZE = 8
 
 export interface OverlayFrame {
+  shape: SelectionType
+  /** 外框：矩形、橢圓用它畫形狀；三種形狀都用它的左上角放編號 */
   bounds: Bounds
+  /** 套索的路徑點，畫成封閉多邊形 */
+  points?: Point[]
   isActive: boolean
   /** 左上角的編號；拖曳中還沒建立的框不顯示編號 */
   label?: number
@@ -27,14 +31,51 @@ export interface OverlayFrame {
   isDraft?: boolean
 }
 
+/**
+ * 描繪中的套索只畫筆跡：不填色、不封閉。
+ * 半透明的填色會蓋住正在描的圖案，使用者看不清楚邊緣該往哪裡走；放開滑鼠後才顯示成完整範圍。
+ */
+function isDrawingLasso(frame: OverlayFrame): boolean {
+  return frame.shape === 'lasso' && frame.isDraft === true
+}
+
+/** 依形狀描出路徑，填色與描邊共用同一條路徑 */
+function tracePath(ctx: CanvasRenderingContext2D, frame: OverlayFrame): void {
+  const { bounds, points } = frame
+  ctx.beginPath()
+  if (frame.shape === 'ellipse') {
+    ctx.ellipse(
+      bounds.x + bounds.width / 2,
+      bounds.y + bounds.height / 2,
+      bounds.width / 2,
+      bounds.height / 2,
+      0,
+      0,
+      Math.PI * 2,
+    )
+  } else if (frame.shape === 'lasso' && points && points.length > 0) {
+    ctx.moveTo(points[0].x, points[0].y)
+    for (const point of points.slice(1)) ctx.lineTo(point.x, point.y)
+    // 完成後沒畫回起點也自動以直線封閉，和遮罩的判斷一致
+    if (!isDrawingLasso(frame)) ctx.closePath()
+  } else {
+    ctx.rect(bounds.x, bounds.y, bounds.width, bounds.height)
+  }
+}
+
 function drawFrame(ctx: CanvasRenderingContext2D, frame: OverlayFrame): void {
-  const { bounds, isActive } = frame
-  ctx.setLineDash(frame.isDraft ? [6, 4] : [])
-  ctx.fillStyle = isActive ? ACTIVE_FRAME_FILL : FRAME_FILL
-  ctx.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
+  const { isActive } = frame
+  tracePath(ctx, frame)
+  const drawingLasso = isDrawingLasso(frame)
+  // 描繪中的套索用實線：手繪筆跡的轉折很密，虛線會斷斷續續看不出路徑
+  ctx.setLineDash(frame.isDraft && !drawingLasso ? [6, 4] : [])
+  if (!drawingLasso) {
+    ctx.fillStyle = isActive ? ACTIVE_FRAME_FILL : FRAME_FILL
+    ctx.fill()
+  }
   ctx.strokeStyle = isActive ? ACTIVE_FRAME_COLOR : FRAME_COLOR
   ctx.lineWidth = isActive ? 2.5 : 1.5
-  ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+  ctx.stroke()
   ctx.setLineDash([])
 }
 

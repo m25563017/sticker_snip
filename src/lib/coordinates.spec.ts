@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clampPoint, containedPointToImage, displayToSource, sourceToDisplay } from './coordinates'
+import { boundsToDisplay, clampPoint, containedPointToImage, displayToSource, sourceToDisplay } from './coordinates'
 
 describe('displayToSource', () => {
   it('畫面縮小一半顯示時，畫面座標要放大兩倍才是原圖座標', () => {
@@ -57,5 +57,11 @@ describe('containedPointToImage', () => {
   it('點在上方或下方的留白處，回傳 null', () => {
     expect(toImage(100, 20)).toBeNull()
     expect(toImage(100, 160)).toBeNull()
+  })
+})
+
+describe('boundsToDisplay', () => {
+  it('位置與寬高都乘上縮放比例', () => {
+    expect(boundsToDisplay({ x: 10, y: 20, width: 100, height: 50 }, 0.5)).toEqual({ x: 5, y: 10, width: 50, height: 25 })
   })
 })

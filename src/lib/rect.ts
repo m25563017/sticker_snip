@@ -23,21 +23,3 @@ export function isRectTooSmall(bounds: Bounds, minSize: number): boolean {
   return bounds.width < minSize || bounds.height < minSize
 }
 
-/**
- * 在畫布上點選範圍：找出包含這個點的框中「面積最小」的那個，回傳它在陣列中的位置。
- * 選最小的：大框裡如果有小框，選大的話小框就永遠點不到了。
- */
-export function findSmallestContaining(boxes: Bounds[], point: Point): number {
-  let found = -1
-  let smallestArea = Infinity
-  boxes.forEach((box, index) => {
-    const inside =
-      point.x >= box.x && point.x <= box.x + box.width && point.y >= box.y && point.y <= box.y + box.height
-    const area = box.width * box.height
-    if (inside && area < smallestArea) {
-      found = index
-      smallestArea = area
-    }
-  })
-  return found
-}

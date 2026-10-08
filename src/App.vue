@@ -2,10 +2,11 @@
 import { useNotify } from '@pieda/core'
 import { useEditorStore } from '@/stores/editor'
 import ImageDropzone from '@/components/ImageDropzone.vue'
+import AppIcon from '@/components/AppIcon.vue'
 import EditorCanvas from '@/components/EditorCanvas.vue'
 import ThumbnailList from '@/components/ThumbnailList.vue'
 import ReviewGrid from '@/components/ReviewGrid.vue'
-import DetectToolbar from '@/components/DetectToolbar.vue'
+import SelectToolbar from '@/components/SelectToolbar.vue'
 import { useExport } from '@/composables/useExport'
 import { useSelectionPreviews } from '@/composables/useSelectionPreviews'
 
@@ -48,22 +49,26 @@ async function handleReupload(): Promise<void> {
       <h1 class="text-xl">貼紙裁切去背工具</h1>
       <template v-if="editorStore.hasImage && editorStore.stage === 'select'">
         <div class="flex items-center gap-2">
-          <button type="button" class="app-shell__secondary" @click="handleReupload">重新上傳</button>
+          <button type="button" class="app-shell__secondary inline-flex items-center gap-1" @click="handleReupload">
+            <AppIcon name="upload" />重新上傳
+          </button>
           <button
             type="button"
-            class="app-shell__primary"
+            class="app-shell__primary inline-flex items-center gap-1"
             :disabled="editorStore.selectionCount === 0"
             @click="handleEnterReview"
           >
-            預覽結果（{{ editorStore.selectionCount }} 張）
+            預覽結果（{{ editorStore.selectionCount }} 張）<AppIcon name="arrowRight" />
           </button>
         </div>
       </template>
       <template v-if="editorStore.hasImage && editorStore.stage === 'review'">
         <div class="flex items-center gap-2">
-          <button type="button" class="app-shell__secondary" @click="handleBackToSelect">返回框選</button>
-          <button type="button" class="app-shell__primary" :disabled="isExporting" @click="exportZip">
-            {{ isExporting ? '打包中…' : `下載 zip（${editorStore.selectionCount} 張）` }}
+          <button type="button" class="app-shell__secondary inline-flex items-center gap-1" @click="handleBackToSelect">
+            <AppIcon name="arrowLeft" />返回框選
+          </button>
+          <button type="button" class="app-shell__primary inline-flex items-center gap-1" :disabled="isExporting" @click="exportZip">
+            <AppIcon name="download" />{{ isExporting ? '打包中…' : `下載 zip（${editorStore.selectionCount} 張）` }}
           </button>
         </div>
       </template>
@@ -78,7 +83,7 @@ async function handleReupload(): Promise<void> {
         <ThumbnailList class="w-56 shrink-0 pt-4" :previews="previews" />
         <!-- min-w-0／min-h-0：讓畫布區可以比內容小，縮放視窗時才不會被 canvas 撐住 -->
         <div class="flex flex-col flex-1 min-w-0">
-          <DetectToolbar />
+          <SelectToolbar />
           <div class="flex-1 min-h-0">
             <EditorCanvas />
           </div>

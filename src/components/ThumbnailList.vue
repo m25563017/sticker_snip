@@ -2,6 +2,7 @@
 import { useEditorStore } from '@/stores/editor'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
 import PixelCanvas from '@/components/PixelCanvas.vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps<{
   /** 每個範圍的去背結果（以 id 查詢），由 App 統一計算，檢查頁共用同一份快取 */
@@ -59,8 +60,12 @@ function handleDelete(id: number): void {
             </template>
           </div>
 
-          <button type="button" class="thumbnail-list__delete" @click.stop="handleDelete(selection.id)">
-            刪除
+          <button
+            type="button"
+            class="thumbnail-list__delete inline-flex items-center gap-1 justify-center"
+            @click.stop="handleDelete(selection.id)"
+          >
+            <AppIcon name="trash" :size="14" />刪除
           </button>
         </li>
       </template>

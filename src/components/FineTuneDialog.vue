@@ -11,6 +11,7 @@ import type { Point, Selection } from '@/types/selection'
 import PixelCanvas from '@/components/PixelCanvas.vue'
 import BackdropToggle from '@/components/BackdropToggle.vue'
 import ManualEditPanel from '@/components/ManualEditPanel.vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps<{
   selection: Selection
@@ -146,7 +147,9 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
           <h2 class="text-lg">#{{ props.displayNumber }} 微調</h2>
           <div class="flex items-center gap-3">
             <BackdropToggle :model-value="props.backdrop" @update:model-value="handleBackdropChange" />
-            <button type="button" class="fine-tune-dialog__close" aria-label="關閉" @click="handleClose">✕</button>
+            <button type="button" class="fine-tune-dialog__close" aria-label="關閉" @click="handleClose">
+              <AppIcon name="close" :size="20" />
+            </button>
           </div>
         </header>
 
@@ -176,11 +179,11 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
           <span class="text-sm opacity-60">{{ props.selection.isManualColor ? '（手動取色）' : '（自動偵測）' }}</span>
           <button
             type="button"
-            class="fine-tune-dialog__button"
+            class="fine-tune-dialog__button inline-flex items-center gap-1"
             :disabled="!props.selection.isManualColor"
             @click="handleResetColor"
           >
-            恢復自動偵測
+            <AppIcon name="refresh" />恢復自動偵測
           </button>
         </div>
 
@@ -204,8 +207,13 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
 
         <!-- ======== 底部操作：修改即時套用，這裡只提供整組還原與明確的完成 ======== -->
         <footer class="flex items-center justify-between">
-          <button type="button" class="fine-tune-dialog__button" :disabled="!hasChanges" @click="handleRevert">
-            還原到打開前
+          <button
+            type="button"
+            class="fine-tune-dialog__button inline-flex items-center gap-1"
+            :disabled="!hasChanges"
+            @click="handleRevert"
+          >
+            <AppIcon name="undo" />還原到打開前
           </button>
           <button type="button" class="fine-tune-dialog__done" @click="handleClose">完成</button>
         </footer>
@@ -276,6 +284,9 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
   }
 
   .fine-tune-dialog__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 32px;
     height: 32px;
     border-radius: 50%;
