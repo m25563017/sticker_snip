@@ -27,7 +27,7 @@ const fineTuneTarget = computed(() => editorStore.selections[fineTuneIndex.value
 /** 調整過的範圍加上標記，使用者回到檢查頁時一眼看出哪些已經處理過 */
 function isAdjusted(selection: Selection): boolean {
   return (
-    selection.isManualColor || selection.threshold !== DEFAULT_THRESHOLD || selection.removalSeeds.length > 0
+    selection.isManualColor || selection.threshold !== DEFAULT_THRESHOLD || selection.manualEdits.length > 0
   )
 }
 

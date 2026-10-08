@@ -10,6 +10,7 @@ import type { PreviewBackdrop } from '@/types/preview'
 import type { Point, Selection } from '@/types/selection'
 import PixelCanvas from '@/components/PixelCanvas.vue'
 import BackdropToggle from '@/components/BackdropToggle.vue'
+import ManualEditPanel from '@/components/ManualEditPanel.vue'
 
 const props = defineProps<{
   selection: Selection
@@ -33,14 +34,16 @@ const THRESHOLD_DEBOUNCE_MS = 100
 const editorStore = useEditorStore()
 
 // ======== 快照：打開彈窗時的設定，「還原到打開前」用 ========
-type TuningSnapshot = Pick<Selection, 'backgroundColor' | 'isManualColor' | 'threshold' | 'removalSeeds'>
+type TuningSnapshot = Pick<Selection, 'backgroundColor' | 'isManualColor' | 'threshold' | 'manualEdits'>
 
 function takeSnapshot(source: TuningSnapshot): TuningSnapshot {
   return {
     backgroundColor: source.backgroundColor,
     isManualColor: source.isManualColor,
     threshold: source.threshold,
-    removalSeeds: source.removalSeeds.map((point) => ({ ...point })),
+    // 手動修改是多層的純資料（陣列裡有物件、物件裡又有陣列），用 JSON 來回轉一次做完整複製，
+    // 快照才不會和目前的資料共用同一份陣列、被之後的修改連帶改掉
+    manualEdits: JSON.parse(JSON.stringify(source.manualEdits)),
   }
 }
 
@@ -63,29 +66,6 @@ function handlePickColor(point: Point): void {
 
 function handleResetColor(): void {
   editorStore.resetToAutoBackgroundColor(props.selection.id)
-}
-
-// ======== 魔術棒 ========
-/**
- * 在去背結果上點選沒去乾淨的區塊。點到已經透明的地方不算一次操作，
- * 否則「復原」會多出一些看不出效果的步驟，讓使用者困惑。
- */
-function handleWandPick(point: Point): void {
-  const preview = props.preview
-  const region = originalRegion.value
-  if (!preview || !region) return
-  const index = (Math.round(point.y) * preview.width + Math.round(point.x)) * 4
-  if (preview.data[index + 3] === 0) return
-
-  editorStore.addRemovalSeed(props.selection.id, { x: point.x + region.origin.x, y: point.y + region.origin.y })
-}
-
-function handleUndoSeed(): void {
-  editorStore.undoRemovalSeed(props.selection.id)
-}
-
-function handleClearSeeds(): void {
-  editorStore.clearRemovalSeeds(props.selection.id)
 }
 
 // ======== 閾值 ========
@@ -180,17 +160,12 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
               </template>
             </div>
           </figure>
-          <figure class="flex flex-col gap-1">
-            <figcaption class="text-sm opacity-70">去背結果：點選沒去乾淨的區塊（魔術棒）</figcaption>
-            <div
-              class="fine-tune-dialog__image fine-tune-dialog__image--pickable preview-backdrop"
-              :class="`preview-backdrop--${props.backdrop}`"
-            >
-              <template v-if="props.preview">
-                <PixelCanvas :image="props.preview" fit="contain" :loupe-radius="0" @pick="handleWandPick" />
-              </template>
-            </div>
-          </figure>
+          <ManualEditPanel
+            :selection="props.selection"
+            :preview="props.preview"
+            :origin="originalRegion?.origin ?? null"
+            :backdrop="props.backdrop"
+          />
         </div>
 
         <!-- ======== 背景色 ======== -->
@@ -206,28 +181,6 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
             @click="handleResetColor"
           >
             恢復自動偵測
-          </button>
-        </div>
-
-        <!-- ======== 魔術棒 ======== -->
-        <div class="flex items-center gap-3">
-          <span class="text-sm w-16">魔術棒</span>
-          <span class="text-sm">已手動去背 {{ props.selection.removalSeeds.length }} 處</span>
-          <button
-            type="button"
-            class="fine-tune-dialog__button"
-            :disabled="props.selection.removalSeeds.length === 0"
-            @click="handleUndoSeed"
-          >
-            復原上一個
-          </button>
-          <button
-            type="button"
-            class="fine-tune-dialog__button"
-            :disabled="props.selection.removalSeeds.length === 0"
-            @click="handleClearSeeds"
-          >
-            全部清除
           </button>
         </div>
 

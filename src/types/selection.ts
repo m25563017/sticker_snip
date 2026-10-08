@@ -56,12 +56,18 @@ interface SelectionBase {
    */
   isManualColor: boolean
   /**
-   * 魔術棒點過的位置（原圖座標），每一點都會以「該點的顏色」為基準再做一次 flood fill。
-   * 用來去掉被物件包圍、從邊界流不進去的背景（例如花圈中間、氣球線之間的空隙）。
-   * 存原圖座標而非裁切後座標：之後支援調整範圍大小時，點過的位置不會跟著跑掉。
+   * 微調彈窗裡的手動修改，依操作順序記錄；「復原上一步」就是拿掉最後一筆，不分工具。
+   * 座標都存原圖座標而非裁切後座標：調整範圍大小後，修改過的位置不會跟著跑掉。
    */
-  removalSeeds: Point[]
+  manualEdits: ManualEdit[]
 }
+
+/**
+ * - wand（魔術棒）：以點到的顏色為基準再做一次 flood fill，
+ *   去掉被物件包圍、從邊界流不進去的背景（例如花圈中間、氣球線之間的空隙）
+ * - erase（橡皮擦）：沿路徑直接擦成透明，不管顏色，處理魔術棒選不乾淨的東西
+ */
+export type ManualEdit = { tool: 'wand'; point: Point } | { tool: 'erase'; points: Point[]; radius: number }
 
 /** 矩形與橢圓：用 bounds 描述 */
 export interface RectLikeSelection extends SelectionBase {

@@ -10,6 +10,7 @@ import {
   createDefaultWhiteBorder,
   DEFAULT_THRESHOLD,
   type Bounds,
+  type ManualEdit,
   type Point,
   type Selection,
   type SelectionCreatedBy,
@@ -116,7 +117,7 @@ export const useEditorStore = defineStore('editor', () => {
       backgroundColor: null,
       threshold: DEFAULT_THRESHOLD,
       isManualColor: false,
-      removalSeeds: [],
+      manualEdits: [],
     }
     selections.value.push(created)
     refreshBackgroundColor(created.id)
@@ -147,22 +148,31 @@ export const useEditorStore = defineStore('editor', () => {
     refreshBackgroundColor(id)
   }
 
-  // ======== 魔術棒 ========
-  /** 換新陣列而非 push：快取指紋靠 JSON 比對，新陣列也讓 Vue 更確實地偵測到變化 */
-  function addRemovalSeed(id: number, point: Point): void {
+  // ======== 微調：魔術棒、橡皮擦 ========
+  const roundPoint = (point: Point): Point => ({ x: Math.round(point.x), y: Math.round(point.y) })
+
+  /**
+   * 記錄一筆手動修改。座標四捨五入成整數像素，避免快取指紋裡出現一長串小數。
+   * 換新陣列而非 push：快取指紋靠 JSON 比對，新陣列也讓 Vue 更確實地偵測到變化。
+   */
+  function addManualEdit(id: number, edit: ManualEdit): void {
     const target = selections.value.find((item) => item.id === id)
     if (!target) return
-    const rounded = { x: Math.round(point.x), y: Math.round(point.y) }
-    target.removalSeeds = [...target.removalSeeds, rounded]
+    const rounded: ManualEdit =
+      edit.tool === 'wand'
+        ? { tool: 'wand', point: roundPoint(edit.point) }
+        : { tool: 'erase', points: edit.points.map(roundPoint), radius: edit.radius }
+    target.manualEdits = [...target.manualEdits, rounded]
   }
 
-  function undoRemovalSeed(id: number): void {
+  /** 復原上一步：不分工具，拿掉最後一筆修改 */
+  function undoManualEdit(id: number): void {
     const target = selections.value.find((item) => item.id === id)
-    if (target) target.removalSeeds = target.removalSeeds.slice(0, -1)
+    if (target) target.manualEdits = target.manualEdits.slice(0, -1)
   }
 
-  function clearRemovalSeeds(id: number): void {
-    updateSelection(id, { removalSeeds: [] })
+  function clearManualEdits(id: number): void {
+    updateSelection(id, { manualEdits: [] })
   }
 
   function removeSelection(id: number): void {
@@ -214,9 +224,9 @@ export const useEditorStore = defineStore('editor', () => {
     refreshBackgroundColor,
     setManualBackgroundColor,
     resetToAutoBackgroundColor,
-    addRemovalSeed,
-    undoRemovalSeed,
-    clearRemovalSeeds,
+    addManualEdit,
+    undoManualEdit,
+    clearManualEdits,
     reset,
   }
 })

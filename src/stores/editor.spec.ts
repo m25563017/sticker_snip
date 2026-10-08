@@ -196,23 +196,30 @@ describe('useEditorStore', () => {
     expect(store.selections[0].backgroundColor).toBe('#ffff00')
   })
 
-  it('魔術棒：新增的點四捨五入成整數像素，可以逐一復原或全部清除', () => {
+  it('手動修改：魔術棒與橡皮擦依序記錄在同一個清單，座標四捨五入', () => {
     const store = useEditorStore()
     const created = store.addSelection(makeRectShape())
 
-    store.addRemovalSeed(created.id, { x: 10.4, y: 20.6 })
-    store.addRemovalSeed(created.id, { x: 30, y: 40 })
-    expect(store.selections[0].removalSeeds).toEqual([
-      { x: 10, y: 21 },
-      { x: 30, y: 40 },
+    store.addManualEdit(created.id, { tool: 'wand', point: { x: 10.4, y: 20.6 } })
+    store.addManualEdit(created.id, { tool: 'erase', points: [{ x: 1.2, y: 2.7 }], radius: 5 })
+
+    expect(store.selections[0].manualEdits).toEqual([
+      { tool: 'wand', point: { x: 10, y: 21 } },
+      { tool: 'erase', points: [{ x: 1, y: 3 }], radius: 5 },
     ])
+  })
 
-    store.undoRemovalSeed(created.id)
-    expect(store.selections[0].removalSeeds).toEqual([{ x: 10, y: 21 }])
+  it('復原上一步：不分工具拿掉最後一筆；全部清除則清空', () => {
+    const store = useEditorStore()
+    const created = store.addSelection(makeRectShape())
+    store.addManualEdit(created.id, { tool: 'wand', point: { x: 1, y: 1 } })
+    store.addManualEdit(created.id, { tool: 'erase', points: [{ x: 2, y: 2 }], radius: 3 })
 
-    store.addRemovalSeed(created.id, { x: 50, y: 50 })
-    store.clearRemovalSeeds(created.id)
-    expect(store.selections[0].removalSeeds).toEqual([])
+    store.undoManualEdit(created.id)
+    expect(store.selections[0].manualEdits.map((edit) => edit.tool)).toEqual(['wand'])
+
+    store.clearManualEdits(created.id)
+    expect(store.selections[0].manualEdits).toEqual([])
   })
 
   describe('自動偵測', () => {

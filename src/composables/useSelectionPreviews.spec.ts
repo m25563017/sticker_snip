@@ -85,7 +85,7 @@ describe('useSelectionPreviews', () => {
     expect(processSelection).toHaveBeenCalledTimes(2)
   })
 
-  it('魔術棒點選後，只重算那個範圍', async () => {
+  it('手動修改後，只重算那個範圍', async () => {
     const editorStore = useEditorStore()
     editorStore.sourcePixels = makeWhiteImage()
     useSelectionPreviews()
@@ -94,7 +94,7 @@ describe('useSelectionPreviews', () => {
     await nextTick()
     vi.mocked(processSelection).mockClear()
 
-    editorStore.addRemovalSeed(1, { x: 3, y: 3 })
+    editorStore.addManualEdit(1, { tool: 'wand', point: { x: 3, y: 3 } })
     await nextTick()
 
     expect(processSelection).toHaveBeenCalledTimes(1)

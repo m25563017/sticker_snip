@@ -31,7 +31,7 @@ function makeRectSelection(bounds: Bounds): Selection {
     backgroundColor: null,
     threshold: DEFAULT_THRESHOLD,
     isManualColor: false,
-    removalSeeds: [],
+    manualEdits: [],
   }
 }
 
