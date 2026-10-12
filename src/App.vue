@@ -75,7 +75,7 @@ async function handleReupload(): Promise<void> {
           <button type="button" class="app-shell__secondary inline-flex items-center gap-1 whitespace-nowrap" @click="handleBackToSelect">
             <AppIcon name="arrowLeft" />返回框選
           </button>
-          <button type="button" class="app-shell__primary inline-flex items-center gap-1 whitespace-nowrap" :disabled="isExporting" @click="exportStickers">
+          <button type="button" class="app-shell__primary inline-flex items-center gap-1 whitespace-nowrap" :disabled="isExporting || editorStore.selectionCount === 0" @click="exportStickers">
             <AppIcon name="download" />{{ exportLabel }}
           </button>
         </div>

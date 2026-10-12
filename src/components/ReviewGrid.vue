@@ -9,6 +9,7 @@ import OutputPreview from '@/components/OutputPreview.vue'
 import OutputSettingsPanel from '@/components/OutputSettingsPanel.vue'
 import BackdropToggle from '@/components/BackdropToggle.vue'
 import FineTuneDialog from '@/components/FineTuneDialog.vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps<{
   /** 每個範圍的去背結果（以 id 查詢），和縮圖列表共用同一份快取 */
@@ -46,6 +47,11 @@ function handleOpenFineTune(id: number): void {
 function handleCloseFineTune(): void {
   fineTuneId.value = null
 }
+
+/** 不要的直接刪：刪錯了回框選頁重框就好，不跳確認視窗打斷節奏 */
+function handleRemove(id: number): void {
+  editorStore.removeSelection(id)
+}
 </script>
 
 <template>
@@ -59,11 +65,14 @@ function handleCloseFineTune(): void {
       </div>
 
       <!-- ======== 所有結果 ======== -->
+      <template v-if="editorStore.selectionCount === 0">
+        <p class="review-grid__empty">沒有貼紙了，回上一步重新框選</p>
+      </template>
       <ul class="review-grid__list">
         <template v-for="(selection, index) in editorStore.selections" :key="selection.id">
-          <li>
+          <li class="review-grid__item">
             <button type="button" class="review-grid__card" @click="handleOpenFineTune(selection.id)">
-              <span class="flex items-center justify-between w-full text-sm">
+              <span class="flex items-center justify-between w-full pr-8 text-sm">
                 #{{ index + 1 }}
                 <template v-if="isAdjusted(selection)">
                   <span class="review-grid__badge">已微調</span>
@@ -75,6 +84,10 @@ function handleCloseFineTune(): void {
                   <OutputPreview :image="props.previews.get(selection.id)!" :settings="renderSettings" />
                 </template>
               </span>
+            </button>
+            <!-- 按鈕裡不能再放按鈕，所以刪除鈕放在卡片旁邊，再用定位疊到右上角 -->
+            <button type="button" class="review-grid__remove" :aria-label="`刪除 #${index + 1}`" title="刪除" @click="handleRemove(selection.id)">
+              <AppIcon name="trash" />
             </button>
           </li>
         </template>
@@ -110,6 +123,44 @@ function handleCloseFineTune(): void {
     gap: 16px;
     overflow-y: auto;
     padding-bottom: 8px;
+  }
+
+  .review-grid__empty {
+    padding: 48px 0;
+    text-align: center;
+    opacity: 0.6;
+  }
+
+  .review-grid__item {
+    position: relative;
+
+    /* 滑鼠移到卡片上才出現，平常不干擾檢查畫面 */
+    &:hover .review-grid__remove,
+    .review-grid__remove:focus-visible {
+      opacity: 1;
+    }
+  }
+
+  .review-grid__remove {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    color: rgb(220, 38, 38);
+    background-color: var(--color-paper);
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    opacity: 0;
+
+    &:hover {
+      color: #fff;
+      background-color: rgb(220, 38, 38);
+      border-color: rgb(220, 38, 38);
+    }
   }
 
   .review-grid__card {

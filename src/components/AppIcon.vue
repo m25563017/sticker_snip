@@ -67,6 +67,12 @@ const ICONS = {
   ],
   upload: [path('M12 3v12'), path('m17 8-5-5-5 5'), path('M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4')],
   download: [path('M12 15V3'), path('M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'), path('m7 10 5 5 5-5')],
+  fit: [
+    path('M8 3H5a2 2 0 0 0-2 2v3'),
+    path('M21 8V5a2 2 0 0 0-2-2h-3'),
+    path('M3 16v3a2 2 0 0 0 2 2h3'),
+    path('M16 21h3a2 2 0 0 0 2-2v-3'),
+  ],
   close: [path('M18 6 6 18'), path('m6 6 12 12')],
   arrowLeft: [path('m12 19-7-7 7-7'), path('M19 12H5')],
   arrowRight: [path('M5 12h14'), path('m12 5 7 7-7 7')],

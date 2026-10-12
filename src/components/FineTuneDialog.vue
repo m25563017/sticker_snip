@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useEventListener } from '@vueuse/core'
 import { useEditorStore } from '@/stores/editor'
 import { useUndoHistory } from '@/composables/useUndoHistory'
 import { useDebouncedDraft } from '@/composables/useDebouncedDraft'
 import { cropSelection } from '@/lib/cropSelection'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
+import { FIT_VIEW, type ZoomView } from '@/lib/zoomView'
 import type { PreviewBackdrop } from '@/types/preview'
 import type { ManualEdit, Selection } from '@/types/selection'
 import PixelCanvas from '@/components/PixelCanvas.vue'
+import ZoomViewport from '@/components/ZoomViewport.vue'
 import BackdropToggle from '@/components/BackdropToggle.vue'
 import ManualEditPanel from '@/components/ManualEditPanel.vue'
 import AppIcon from '@/components/AppIcon.vue'
@@ -79,6 +81,15 @@ function handleRedo(): void {
   if (next) editorStore.updateSelection(props.selection.id, { manualEdits: next })
 }
 
+// ======== 縮放 ========
+/** 原圖和結果共用同一份視角：放大看某個角落時，兩邊停在同一個位置方便對照 */
+const view = ref<ZoomView>(FIT_VIEW)
+const zoomPercent = computed(() => Math.round(view.value.scale * 100))
+
+function handleFitView(): void {
+  view.value = FIT_VIEW
+}
+
 // ======== 閾值 ========
 /** 拖動時數字即時跟著動，寫回 store（觸發重算去背）等停手；還原時可取消、關閉時自動送出 */
 const {
@@ -142,6 +153,16 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
         <header class="flex items-center justify-between gap-4">
           <h2 class="text-lg">#{{ props.displayNumber }} 微調</h2>
           <div class="flex items-center gap-3">
+            <span class="text-xs opacity-60">滾輪縮放、按住空白鍵拖曳平移</span>
+            <button
+              type="button"
+              class="fine-tune-dialog__button inline-flex items-center gap-1 whitespace-nowrap"
+              :disabled="view.scale === 1"
+              title="適應視窗"
+              @click="handleFitView"
+            >
+              <AppIcon name="fit" />{{ zoomPercent }}%
+            </button>
             <BackdropToggle :model-value="props.backdrop" @update:model-value="handleBackdropChange" />
             <button type="button" class="fine-tune-dialog__close" aria-label="關閉" @click="handleClose">
               <AppIcon name="close" :size="20" />
@@ -159,13 +180,16 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
             <figcaption class="text-sm opacity-70">原圖（去背前，僅供對照）</figcaption>
             <div class="fine-tune-dialog__image preview-backdrop preview-backdrop--checker">
               <template v-if="originalImage">
-                <PixelCanvas :image="originalImage" fit="contain" />
+                <ZoomViewport v-model:view="view" class="w-full h-full">
+                  <PixelCanvas :image="originalImage" fit="contain" />
+                </ZoomViewport>
               </template>
             </div>
           </figure>
           <ManualEditPanel
             :selection="props.selection"
             :preview="props.preview"
+            v-model:view="view"
             :origin="originalRegion?.origin ?? null"
             :backdrop="props.backdrop"
             :can-undo="history.canUndo.value"

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import type { ZoomView } from '@/lib/zoomView'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
 import type { PreviewBackdrop } from '@/types/preview'
 import type { ManualEdit, Point, Selection } from '@/types/selection'
 import PixelCanvas from '@/components/PixelCanvas.vue'
+import ZoomViewport from '@/components/ZoomViewport.vue'
 import AppIcon, { type IconName } from '@/components/AppIcon.vue'
 
 /**
@@ -26,6 +28,9 @@ const emit = defineEmits<{
   undo: []
   redo: []
 }>()
+
+/** 縮放視角，和左邊的原圖共用，兩邊同步 */
+const view = defineModel<ZoomView>('view', { required: true })
 
 type EditTool = 'wand' | 'erase' | 'keep'
 const TOOLS: { value: EditTool; label: string; icon: IconName; hint: string }[] = [
@@ -128,15 +133,17 @@ function handleRedo(): void {
     <!-- ======== 去背結果（在上面點選或擦除） ======== -->
     <div class="manual-edit-panel__image preview-backdrop" :class="`preview-backdrop--${props.backdrop}`">
       <template v-if="props.preview">
-        <PixelCanvas
-          :image="props.preview"
-          fit="contain"
-          :loupe-radius="activeTool === 'wand' ? 0 : undefined"
-          :brush-radius="activeTool !== 'wand' ? brushSize / 2 : undefined"
-          :brush-tone="activeTool === 'keep' ? 'keep' : 'erase'"
-          @pick="handleWandPick"
-          @stroke="handleBrushStroke"
-        />
+        <ZoomViewport v-model:view="view" class="w-full h-full">
+          <PixelCanvas
+            :image="props.preview"
+            fit="contain"
+            :loupe-radius="activeTool === 'wand' ? 0 : undefined"
+            :brush-radius="activeTool !== 'wand' ? brushSize / 2 : undefined"
+            :brush-tone="activeTool === 'keep' ? 'keep' : 'erase'"
+            @pick="handleWandPick"
+            @stroke="handleBrushStroke"
+          />
+        </ZoomViewport>
       </template>
     </div>
 
