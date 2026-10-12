@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import type { PreviewBackdrop } from '@/types/preview'
 
+const { t } = useI18n()
 const props = defineProps<{
   modelValue: PreviewBackdrop
 }>()
@@ -9,11 +11,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: PreviewBackdrop]
 }>()
 
-const options: { value: PreviewBackdrop; label: string }[] = [
-  { value: 'checker', label: '棋盤格' },
-  { value: 'dark', label: '深色' },
-  { value: 'light', label: '淺色' },
-]
+const OPTIONS: PreviewBackdrop[] = ['checker', 'dark', 'light']
 
 function handleSelect(value: PreviewBackdrop): void {
   emit('update:modelValue', value)
@@ -21,19 +19,19 @@ function handleSelect(value: PreviewBackdrop): void {
 </script>
 
 <template>
-  <div class="backdrop-toggle flex items-center gap-1" role="radiogroup" aria-label="預覽背景">
-    <span class="text-sm opacity-70 mr-1">預覽背景</span>
-    <template v-for="option in options" :key="option.value">
+  <div class="backdrop-toggle flex items-center gap-1" role="radiogroup" :aria-label="t('backdrop.label')">
+    <span class="text-sm opacity-70 mr-1">{{ t('backdrop.label') }}</span>
+    <template v-for="option in OPTIONS" :key="option">
       <button
         type="button"
         role="radio"
         class="backdrop-toggle__option"
-        :class="{ 'backdrop-toggle__option--active': option.value === props.modelValue }"
-        :aria-checked="option.value === props.modelValue"
-        @click="handleSelect(option.value)"
+        :class="{ 'backdrop-toggle__option--active': option === props.modelValue }"
+        :aria-checked="option === props.modelValue"
+        @click="handleSelect(option)"
       >
-        <span class="backdrop-toggle__swatch preview-backdrop" :class="`preview-backdrop--${option.value}`"></span>
-        {{ option.label }}
+        <span class="backdrop-toggle__swatch preview-backdrop" :class="`preview-backdrop--${option}`"></span>
+        {{ t(`backdrop.${option}`) }}
       </button>
     </template>
   </div>

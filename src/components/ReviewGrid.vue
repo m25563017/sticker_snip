@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useStorage } from '@vueuse/core'
 import { useEditorStore } from '@/stores/editor'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
@@ -11,6 +12,7 @@ import BackdropToggle from '@/components/BackdropToggle.vue'
 import FineTuneDialog from '@/components/FineTuneDialog.vue'
 import AppIcon from '@/components/AppIcon.vue'
 
+const { t } = useI18n()
 const props = defineProps<{
   /** 每個範圍的去背結果（以 id 查詢），和縮圖列表共用同一份快取 */
   previews: Map<number, PixelBuffer>
@@ -60,13 +62,13 @@ function handleRemove(id: number): void {
     <div class="flex flex-col flex-1 gap-4 min-w-0">
       <!-- ======== 說明 + 背景切換 ======== -->
       <div class="flex items-center justify-between gap-4">
-        <p class="text-sm opacity-70">確認每一張的去背與輸出效果，不滿意的點一下進入微調</p>
+        <p class="text-sm opacity-70">{{ t('review.hint') }}</p>
         <BackdropToggle v-model="backdrop" />
       </div>
 
       <!-- ======== 所有結果 ======== -->
       <template v-if="editorStore.selectionCount === 0">
-        <p class="review-grid__empty">沒有貼紙了，回上一步重新框選</p>
+        <p class="review-grid__empty">{{ t('review.empty') }}</p>
       </template>
       <ul class="review-grid__list">
         <template v-for="(selection, index) in editorStore.selections" :key="selection.id">
@@ -75,7 +77,7 @@ function handleRemove(id: number): void {
               <span class="flex items-center justify-between w-full pr-8 text-sm">
                 #{{ index + 1 }}
                 <template v-if="isAdjusted(selection)">
-                  <span class="review-grid__badge">已微調</span>
+                  <span class="review-grid__badge">{{ t('review.adjusted') }}</span>
                 </template>
               </span>
               <span class="review-grid__image preview-backdrop" :class="`preview-backdrop--${backdrop}`">
@@ -86,7 +88,7 @@ function handleRemove(id: number): void {
               </span>
             </button>
             <!-- 按鈕裡不能再放按鈕，所以刪除鈕放在卡片旁邊，再用定位疊到右上角 -->
-            <button type="button" class="review-grid__remove" :aria-label="`刪除 #${index + 1}`" title="刪除" @click="handleRemove(selection.id)">
+            <button type="button" class="review-grid__remove" :aria-label="t('review.removeLabel', { number: index + 1 })" :title="t('common.delete')" @click="handleRemove(selection.id)">
               <AppIcon name="trash" />
             </button>
           </li>

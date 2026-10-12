@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import { useNotify } from "@pieda/core";
+import { useI18n } from "vue-i18n";
 import { useEditorStore } from "@/stores/editor";
 import { imageBitmapToPixelBuffer } from "@/lib/canvas";
 /**
@@ -7,6 +8,7 @@ import { imageBitmapToPixelBuffer } from "@/lib/canvas";
  * 這裡只負責瀏覽器端的讀檔與錯誤通知；換圖後的重設與自動偵測由 store.loadImage 處理。
  */
 export function useImageUpload() {
+    const { t } = useI18n();
     const $notify = useNotify();
     const editorStore = useEditorStore();
     const isLoading = ref(false);
@@ -14,8 +16,9 @@ export function useImageUpload() {
     async function loadImageFile(file: File): Promise<void> {
         if (!file.type.startsWith("image/")) {
             $notify.alert({
-                title: "檔案格式錯誤",
-                message: "請上傳圖片檔案（PNG、JPG 等），目前選到的不是圖片。",
+                title: t("upload.invalidType.title"),
+                message: t("upload.invalidType.message"),
+                confirmButtonText: t("common.ok"),
                 variant: "error",
             });
             return;
@@ -27,8 +30,9 @@ export function useImageUpload() {
             editorStore.loadImage(bitmap, imageBitmapToPixelBuffer(bitmap));
         } catch {
             $notify.alert({
-                title: "讀取失敗",
-                message: "圖片讀取時發生錯誤，請再試一次。",
+                title: t("upload.readFailed.title"),
+                message: t("upload.readFailed.message"),
+                confirmButtonText: t("common.ok"),
                 variant: "error",
             });
         } finally {

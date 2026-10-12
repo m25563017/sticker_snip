@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useNotify } from '@pieda/core'
+import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@/stores/editor'
 import ImageDropzone from '@/components/ImageDropzone.vue'
 import AppIcon from '@/components/AppIcon.vue'
+import LocaleToggle from '@/components/LocaleToggle.vue'
 import EditorCanvas from '@/components/EditorCanvas.vue'
 import ThumbnailList from '@/components/ThumbnailList.vue'
 import ReviewGrid from '@/components/ReviewGrid.vue'
@@ -11,6 +13,7 @@ import SelectToolbar from '@/components/SelectToolbar.vue'
 import { useExport } from '@/composables/useExport'
 import { useSelectionPreviews } from '@/composables/useSelectionPreviews'
 
+const { t } = useI18n()
 const $notify = useNotify()
 const editorStore = useEditorStore()
 const { isExporting, exportStickers } = useExport()
@@ -22,9 +25,9 @@ const { previews } = useSelectionPreviews()
 
 /** 只有一張時直接下載 PNG，按鈕文字跟著說清楚會拿到什麼 */
 const exportLabel = computed(() => {
-  if (isExporting.value) return '處理中…'
+  if (isExporting.value) return t('app.exporting')
   const count = editorStore.selectionCount
-  return count === 1 ? '下載 PNG' : `下載 zip（${count} 張）`
+  return count === 1 ? t('app.downloadPng') : t('app.downloadZip', { count })
 })
 
 function handleEnterReview(): void {
@@ -39,10 +42,13 @@ function handleBackToSelect(): void {
 async function handleReupload(): Promise<void> {
   if (editorStore.selectionCount > 0) {
     const result = await $notify.alert({
-      title: '重新上傳',
-      message: '目前的範圍會全部清除，確定要重新上傳嗎？',
+      title: t('app.reuploadConfirm.title'),
+      message: t('app.reuploadConfirm.message'),
       variant: 'warning',
       confirm: true,
+      // @pieda/core 的按鈕文字固定，要自己傳才會跟著語言切換
+      confirmButtonText: t('common.ok'),
+      cancelButtonText: t('common.cancel'),
     })
     if (!result.isConfirmed) return
   }
@@ -52,34 +58,38 @@ async function handleReupload(): Promise<void> {
 
 <template>
   <main class="app-shell flex flex-col h-screen">
-    <!-- ======== 頂列：依階段切換操作按鈕 ======== -->
+    <!-- ======== 頂列 ======== -->
     <header class="app-shell__header flex items-center justify-between px-4 py-3">
-      <h1 class="text-xl">貼紙裁切去背工具</h1>
-      <template v-if="editorStore.hasImage && editorStore.stage === 'select'">
-        <div class="flex items-center gap-2">
-          <button type="button" class="app-shell__secondary inline-flex items-center gap-1 whitespace-nowrap" @click="handleReupload">
-            <AppIcon name="upload" />重新上傳
-          </button>
-          <button
-            type="button"
-            class="app-shell__primary inline-flex items-center gap-1 whitespace-nowrap"
-            :disabled="editorStore.selectionCount === 0"
-            @click="handleEnterReview"
-          >
-            預覽結果（{{ editorStore.selectionCount }} 張）<AppIcon name="arrowRight" />
-          </button>
-        </div>
-      </template>
-      <template v-if="editorStore.hasImage && editorStore.stage === 'review'">
-        <div class="flex items-center gap-2">
-          <button type="button" class="app-shell__secondary inline-flex items-center gap-1 whitespace-nowrap" @click="handleBackToSelect">
-            <AppIcon name="arrowLeft" />返回框選
-          </button>
-          <button type="button" class="app-shell__primary inline-flex items-center gap-1 whitespace-nowrap" :disabled="isExporting || editorStore.selectionCount === 0" @click="exportStickers">
-            <AppIcon name="download" />{{ exportLabel }}
-          </button>
-        </div>
-      </template>
+      <h1 class="text-xl">{{ t('app.title') }}</h1>
+      <!-- 右側：依階段切換的操作按鈕 + 語言切換（每個階段都在） -->
+      <div class="flex items-center gap-4">
+        <template v-if="editorStore.hasImage && editorStore.stage === 'select'">
+          <div class="flex items-center gap-2">
+            <button type="button" class="app-shell__secondary inline-flex items-center gap-1 whitespace-nowrap" @click="handleReupload">
+              <AppIcon name="upload" />{{ t('app.reupload') }}
+            </button>
+            <button
+              type="button"
+              class="app-shell__primary inline-flex items-center gap-1 whitespace-nowrap"
+              :disabled="editorStore.selectionCount === 0"
+              @click="handleEnterReview"
+            >
+              {{ t('app.preview', { count: editorStore.selectionCount }, editorStore.selectionCount) }}<AppIcon name="arrowRight" />
+            </button>
+          </div>
+        </template>
+        <template v-if="editorStore.hasImage && editorStore.stage === 'review'">
+          <div class="flex items-center gap-2">
+            <button type="button" class="app-shell__secondary inline-flex items-center gap-1 whitespace-nowrap" @click="handleBackToSelect">
+              <AppIcon name="arrowLeft" />{{ t('app.backToSelect') }}
+            </button>
+            <button type="button" class="app-shell__primary inline-flex items-center gap-1 whitespace-nowrap" :disabled="isExporting || editorStore.selectionCount === 0" @click="exportStickers">
+              <AppIcon name="download" />{{ exportLabel }}
+            </button>
+          </div>
+        </template>
+        <LocaleToggle />
+      </div>
     </header>
 
     <!-- ======== 主工作區：上傳 → 框選 → 檢查 ======== -->

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { useImageUpload } from "@/composables/useImageUpload";
 
+const { t } = useI18n();
 const { isLoading, loadImageFile } = useImageUpload();
 const isDraggingOver = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
@@ -39,10 +41,10 @@ function handleClickZone(): void {
             @change="handleFileInputChange"
         />
 
-        <p v-if="isLoading" class="text-lg">讀取圖片中…</p>
+        <p v-if="isLoading" class="text-lg">{{ t("upload.loading") }}</p>
         <template v-else>
-            <p class="text-lg">拖曳合成圖到這裡</p>
-            <p class="opacity-60">或點擊選擇檔案</p>
+            <p class="text-lg">{{ t("upload.drop") }}</p>
+            <p class="opacity-60">{{ t("upload.browse") }}</p>
         </template>
     </div>
 </template>

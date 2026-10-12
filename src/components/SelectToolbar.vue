@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useDebounceFn } from '@vueuse/core'
 import { useEditorStore } from '@/stores/editor'
 import { defaultMergeDistance } from '@/lib/detectStickers'
@@ -11,18 +12,17 @@ const REDETECT_DEBOUNCE_MS = 200
 /** 滑桿上限為預設值的幾倍：再大通常整張圖都黏成一塊，沒有實用價值 */
 const MAX_DISTANCE_MULTIPLIER = 3
 
-/** 手動框選的形狀；套索畫完不能調整大小，只能刪掉重畫，所以提示文字特別說明 */
-const SHAPES: { value: SelectionType; label: string; icon: IconName; hint: string }[] = [
-  { value: 'rect', label: '矩形', icon: 'rect', hint: '拖曳對角線畫出矩形' },
-  { value: 'ellipse', label: '橢圓', icon: 'ellipse', hint: '拖曳對角線畫出內切的橢圓' },
-  {
-    value: 'lasso',
-    label: '套索',
-    icon: 'lasso',
-    hint: '按住滑鼠描出形狀，放開時自動以直線連回起點；畫好後無法調整大小',
-  },
+/**
+ * 手動框選的形狀；名稱與說明在翻譯檔 selectToolbar.shapes.<value>。
+ * 套索畫完不能調整大小，只能刪掉重畫，所以說明文字特別提到
+ */
+const SHAPES: { value: SelectionType; icon: IconName }[] = [
+  { value: 'rect', icon: 'rect' },
+  { value: 'ellipse', icon: 'ellipse' },
+  { value: 'lasso', icon: 'lasso' },
 ]
 
+const { t } = useI18n()
 const editorStore = useEditorStore()
 
 function handleSelectShape(shape: SelectionType): void {
@@ -67,8 +67,8 @@ function handleClearAuto(): void {
 <template>
   <div class="select-toolbar flex flex-wrap items-center gap-x-4 gap-y-1 py-2">
     <!-- ======== 手動框選的形狀 ======== -->
-    <div class="flex items-center gap-1" role="radiogroup" aria-label="框選形狀">
-      <span class="text-sm mr-1">形狀</span>
+    <div class="flex items-center gap-1" role="radiogroup" :aria-label="t('selectToolbar.shapeGroup')">
+      <span class="text-sm mr-1">{{ t('selectToolbar.shape') }}</span>
       <template v-for="shape in SHAPES" :key="shape.value">
         <button
           type="button"
@@ -76,25 +76,25 @@ function handleClearAuto(): void {
           class="select-toolbar__shape inline-flex items-center gap-1 whitespace-nowrap"
           :class="{ 'select-toolbar__shape--active': editorStore.drawShape === shape.value }"
           :aria-checked="editorStore.drawShape === shape.value"
-          :title="shape.hint"
+          :title="t(`selectToolbar.shapes.${shape.value}.hint`)"
           @click="handleSelectShape(shape.value)"
         >
-          <AppIcon :name="shape.icon" />{{ shape.label }}
+          <AppIcon :name="shape.icon" />{{ t(`selectToolbar.shapes.${shape.value}.label`) }}
         </button>
       </template>
     </div>
 
     <!-- ======== 自動偵測 ======== -->
-    <span class="text-sm">自動偵測到 {{ autoCount }} 張</span>
+    <span class="text-sm">{{ t('selectToolbar.autoCount', { count: autoCount }, autoCount) }}</span>
 
     <label class="flex items-center gap-2">
-      <span class="text-sm">合併距離</span>
+      <span class="text-sm">{{ t('selectToolbar.mergeDistance') }}</span>
       <input type="range" min="0" :max="maxDistance" step="1" :value="distanceDraft" @input="handleDistanceInput" />
       <span class="text-sm w-12">{{ distanceDraft }} px</span>
     </label>
 
     <button type="button" class="select-toolbar__button inline-flex items-center gap-1 whitespace-nowrap" @click="handleRedetect">
-      <AppIcon name="refresh" />重新偵測
+      <AppIcon name="refresh" />{{ t('selectToolbar.redetect') }}
     </button>
     <button
       type="button"
@@ -102,11 +102,11 @@ function handleClearAuto(): void {
       :disabled="autoCount === 0"
       @click="handleClearAuto"
     >
-      <AppIcon name="trash" />清除自動框（改用手動）
+      <AppIcon name="trash" />{{ t('selectToolbar.clearAuto') }}
     </button>
 
     <p class="w-full text-xs opacity-60">
-      兩張貼紙被框在一起就調小；旁邊的小裝飾被拆成另一張就調大。點框可選取，矩形與橢圓可拖曳控制點調整大小；調整過或手動畫的框，重新偵測時都會保留
+      {{ t('selectToolbar.hint') }}
     </p>
   </div>
 </template>

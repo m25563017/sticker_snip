@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@/stores/editor'
 import { EXPORT_SIZES, type ExportSize } from '@/lib/composeOutput'
 import { buildFileName } from '@/lib/fileNaming'
@@ -19,12 +20,10 @@ const MAX_PADDING = 64
 /** 檔名前綴最多幾個字：太長的檔名在檔案總管裡不好讀，也會讓範例檔名把版面撐開 */
 const MAX_PREFIX_LENGTH = 10
 
-const EDGE_QUALITY_OPTIONS: { value: EdgeQuality; label: string; hint: string }[] = [
-  { value: 'pixel', label: '硬邊', hint: '不處理邊緣，適合像素風格的素材' },
-  { value: 'smooth', label: '平滑', hint: '去除邊緣混入的背景色（建議）' },
-  { value: 'ultra', label: '超平滑', hint: '處理範圍更寬，並把鋸齒羽化' },
-]
+/** 名稱與說明在翻譯檔 outputSettings.edgeQualities.<value> */
+const EDGE_QUALITIES: EdgeQuality[] = ['pixel', 'smooth', 'ultra']
 
+const { t } = useI18n()
 const editorStore = useEditorStore()
 const settings = computed(() => editorStore.outputSettings)
 
@@ -43,7 +42,7 @@ watch(paddingMax, (max) => {
 })
 
 function sizeLabel(size: ExportSize): string {
-  return size === 'original' ? '原尺寸（不縮放）' : `${size} × ${size}`
+  return size === 'original' ? t('outputSettings.originalSize') : `${size} × ${size}`
 }
 
 /**
@@ -69,13 +68,13 @@ function handleEdgeQualityChange(event: Event): void {
 </script>
 
 <template>
-  <aside class="output-settings-panel flex flex-col gap-3" aria-label="輸出設定">
-    <h2 class="text-sm opacity-70">輸出設定</h2>
+  <aside class="output-settings-panel flex flex-col gap-3" :aria-label="t('outputSettings.title')">
+    <h2 class="text-sm opacity-70">{{ t('outputSettings.title') }}</h2>
 
     <!-- ======== 基本設定 ======== -->
     <div class="flex flex-col gap-1">
       <label class="output-settings-panel__row">
-        <span>檔名前綴</span>
+        <span>{{ t('outputSettings.filePrefix') }}</span>
         <input
           type="text"
           class="output-settings-panel__input"
@@ -91,7 +90,7 @@ function handleEdgeQualityChange(event: Event): void {
     </div>
 
     <label class="output-settings-panel__row">
-      <span>輸出尺寸</span>
+      <span>{{ t('outputSettings.exportSize') }}</span>
       <select class="output-settings-panel__input" :value="settings.exportSize" @change="handleSizeChange">
         <template v-for="size in EXPORT_SIZES" :key="size">
           <option :value="size">{{ sizeLabel(size) }}</option>
@@ -100,16 +99,18 @@ function handleEdgeQualityChange(event: Event): void {
     </label>
 
     <label class="output-settings-panel__row">
-      <span>邊距</span>
+      <span>{{ t('outputSettings.padding') }}</span>
       <input type="range" min="0" :max="paddingMax" step="1" :value="settings.padding" @input="handlePaddingInput" />
       <span class="w-12 text-right">{{ settings.padding }} px</span>
     </label>
 
     <label class="output-settings-panel__row">
-      <span>邊緣品質</span>
+      <span>{{ t('outputSettings.edgeQuality') }}</span>
       <select class="output-settings-panel__input" :value="settings.edgeQuality" @change="handleEdgeQualityChange">
-        <template v-for="option in EDGE_QUALITY_OPTIONS" :key="option.value">
-          <option :value="option.value" :title="option.hint">{{ option.label }}</option>
+        <template v-for="quality in EDGE_QUALITIES" :key="quality">
+          <option :value="quality" :title="t(`outputSettings.edgeQualities.${quality}.hint`)">
+            {{ t(`outputSettings.edgeQualities.${quality}.label`) }}
+          </option>
         </template>
       </select>
     </label>

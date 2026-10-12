@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@/stores/editor'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
 import PixelCanvas from '@/components/PixelCanvas.vue'
 import AppIcon from '@/components/AppIcon.vue'
 
+const { t } = useI18n()
 const props = defineProps<{
   /** 每個範圍的去背結果（以 id 查詢），由 App 統一計算，檢查頁共用同一份快取 */
   previews: Map<number, PixelBuffer>
@@ -23,14 +25,14 @@ function handleDelete(id: number): void {
 
 <template>
   <aside class="thumbnail-list flex flex-col gap-2 h-full overflow-y-auto">
-    <h2 class="text-sm opacity-70">範圍（{{ editorStore.selectionCount }}）</h2>
+    <h2 class="text-sm opacity-70">{{ t('thumbnails.title', { count: editorStore.selectionCount }) }}</h2>
 
     <template v-if="editorStore.selectionCount === 0">
-      <p class="text-sm opacity-60">在右側圖片上拖曳，框出每一張貼紙</p>
+      <p class="text-sm opacity-60">{{ t('thumbnails.empty') }}</p>
     </template>
     <template v-else>
       <!-- 右鍵刪除沒有任何視覺線索，不提示的話使用者不會知道 -->
-      <p class="text-xs opacity-60">在圖片上按右鍵，可刪除目前選取（橘框）的範圍</p>
+      <p class="text-xs opacity-60">{{ t('thumbnails.rightClickHint') }}</p>
     </template>
 
     <ul class="flex flex-col gap-2">
@@ -48,7 +50,7 @@ function handleDelete(id: number): void {
               <span
                 class="thumbnail-list__swatch"
                 :style="{ backgroundColor: selection.backgroundColor }"
-                :title="`背景色 ${selection.backgroundColor}`"
+                :title="t('thumbnails.backgroundColor', { color: selection.backgroundColor })"
               ></span>
             </template>
           </div>
@@ -65,7 +67,7 @@ function handleDelete(id: number): void {
             class="thumbnail-list__delete inline-flex items-center gap-1 justify-center whitespace-nowrap"
             @click.stop="handleDelete(selection.id)"
           >
-            <AppIcon name="trash" :size="14" />刪除
+            <AppIcon name="trash" :size="14" />{{ t('common.delete') }}
           </button>
         </li>
       </template>

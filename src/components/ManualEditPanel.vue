@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { ZoomView } from '@/lib/zoomView'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
 import type { PreviewBackdrop } from '@/types/preview'
@@ -12,6 +13,7 @@ import AppIcon, { type IconName } from '@/components/AppIcon.vue'
  * 微調彈窗中的「手動修改」：在去背結果上用魔術棒、橡皮擦或保留筆刷修正。
  * 只負責工具介面；修改、復原、重做都 emit 給彈窗處理，歷史紀錄由彈窗統一管理。
  */
+const { t } = useI18n()
 const props = defineProps<{
   selection: Selection
   preview: PixelBuffer | undefined
@@ -33,10 +35,11 @@ const emit = defineEmits<{
 const view = defineModel<ZoomView>('view', { required: true })
 
 type EditTool = 'wand' | 'erase' | 'keep'
-const TOOLS: { value: EditTool; label: string; icon: IconName; hint: string }[] = [
-  { value: 'wand', label: '魔術棒', icon: 'wand', hint: '點一下，去掉同色的一整塊' },
-  { value: 'erase', label: '橡皮擦', icon: 'eraser', hint: '按住拖曳，擦掉經過的地方' },
-  { value: 'keep', label: '保留', icon: 'brush', hint: '按住拖曳，把被去掉的地方還原成原圖' },
+/** 名稱與說明在翻譯檔 manualEdit.tools.<value> */
+const TOOLS: { value: EditTool; icon: IconName }[] = [
+  { value: 'wand', icon: 'wand' },
+  { value: 'erase', icon: 'eraser' },
+  { value: 'keep', icon: 'brush' },
 ]
 /** 筆刷大小（直徑）預設為範圍短邊的 5%，範圍 300 px 約 15 px */
 const BRUSH_SIZE_RATIO = 0.05
@@ -101,22 +104,22 @@ function handleRedo(): void {
     <!-- ======== 工具切換：魔術棒點一下去掉同色區塊；橡皮擦拖曳直接擦掉 ======== -->
     <!-- 文字一律不折行（中文會被擠成一字一行）；空間不夠時讓筆刷滑桿整組換到下一行 -->
     <figcaption class="flex flex-wrap items-center gap-2 text-sm whitespace-nowrap">
-      <span class="opacity-70">去背結果</span>
+      <span class="opacity-70">{{ t('manualEdit.result') }}</span>
       <template v-for="tool in TOOLS" :key="tool.value">
         <button
           type="button"
           class="manual-edit-panel__tool inline-flex items-center gap-1 shrink-0 whitespace-nowrap"
           :class="{ 'manual-edit-panel__tool--active': activeTool === tool.value }"
           :aria-pressed="activeTool === tool.value"
-          :title="tool.hint"
+          :title="t(`manualEdit.tools.${tool.value}.hint`)"
           @click="handleSelectTool(tool.value)"
         >
-          <AppIcon :name="tool.icon" />{{ tool.label }}
+          <AppIcon :name="tool.icon" />{{ t(`manualEdit.tools.${tool.value}.label`) }}
         </button>
       </template>
       <template v-if="activeTool !== 'wand'">
         <label class="flex items-center gap-1 ml-auto">
-          <span class="opacity-70">筆刷</span>
+          <span class="opacity-70">{{ t('manualEdit.brush') }}</span>
           <input
             type="range"
             :min="BRUSH_SIZE_MIN"
@@ -156,7 +159,7 @@ function handleRedo(): void {
         title="Ctrl + Z"
         @click="handleUndo"
       >
-        <AppIcon name="undo" />復原
+        <AppIcon name="undo" />{{ t('manualEdit.undo') }}
       </button>
       <button
         type="button"
@@ -165,7 +168,7 @@ function handleRedo(): void {
         title="Ctrl + Y"
         @click="handleRedo"
       >
-        <AppIcon name="redo" />重做
+        <AppIcon name="redo" />{{ t('manualEdit.redo') }}
       </button>
     </div>
   </figure>

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { rgbToHex } from '@/lib/color'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
 import { readPatch, sampleColor } from '@/lib/sampleColor'
 import type { Point } from '@/types/selection'
 
+const { t } = useI18n()
 const props = defineProps<{
   image: PixelBuffer
   /** 游標指到的圖片像素座標 */
@@ -96,7 +98,7 @@ watch(() => [props.image, props.point.x, props.point.y, props.selectRadius], dra
           <code>{{ pickedColor }}</code>
         </template>
         <template v-else>
-          <span>透明</span>
+          <span>{{ t('common.transparent') }}</span>
         </template>
       </div>
     </div>

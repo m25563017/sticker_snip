@@ -12,6 +12,12 @@ export default defineConfig({
   // 使用者不需架伺服器，直接雙擊 dist/index.html 就能用（需求文件第 3 節）
   base: './',
   plugins: [vue(), tailwindcss(), viteSingleFile()],
+  // vue-i18n 的編譯開關：只用 Composition API，關掉舊版 API 與正式版 devtools，打包檔比較小
+  define: {
+    __VUE_I18N_FULL_INSTALL__: true,
+    __VUE_I18N_LEGACY_API__: false,
+    __INTLIFY_PROD_DEVTOOLS__: false,
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

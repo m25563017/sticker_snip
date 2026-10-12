@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import JSZip from 'jszip'
 import { useNotify } from '@pieda/core'
+import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@/stores/editor'
 import { pixelBufferToPngBlob } from '@/lib/canvas'
 import { trimTransparent } from '@/lib/composeOutput'
@@ -30,6 +31,7 @@ function triggerDownload(blob: Blob, fileName: string): void {
  * 去背走和縮圖相同的 processSelection，確保下載結果與預覽一致。
  */
 export function useExport() {
+  const { t } = useI18n()
   const $notify = useNotify()
   const editorStore = useEditorStore()
   const isExporting = ref(false)
@@ -39,8 +41,9 @@ export function useExport() {
     const selections = editorStore.selections
     if (!source || selections.length === 0) {
       $notify.alert({
-        title: '沒有可匯出的範圍',
-        message: '請先在圖片上拖曳，框選至少一張貼紙。',
+        title: t('export.empty.title'),
+        message: t('export.empty.message'),
+        confirmButtonText: t('common.ok'),
         variant: 'warning',
       })
       return
@@ -67,8 +70,9 @@ export function useExport() {
       triggerDownload(await zip.generateAsync({ type: 'blob' }), ZIP_FILE_NAME)
     } catch {
       $notify.alert({
-        title: '匯出失敗',
-        message: '產生圖片時發生錯誤，請重新整理頁面後再試一次。',
+        title: t('export.failed.title'),
+        message: t('export.failed.message'),
+        confirmButtonText: t('common.ok'),
         variant: 'error',
       })
     } finally {

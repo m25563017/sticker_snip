@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useEventListener } from '@vueuse/core'
 import { useEditorStore } from '@/stores/editor'
 import { useUndoHistory } from '@/composables/useUndoHistory'
@@ -15,6 +16,7 @@ import BackdropToggle from '@/components/BackdropToggle.vue'
 import ManualEditPanel from '@/components/ManualEditPanel.vue'
 import AppIcon from '@/components/AppIcon.vue'
 
+const { t } = useI18n()
 const props = defineProps<{
   selection: Selection
   /** 畫面上的編號（排列順序），和檢查頁、匯出檔名一致 */
@@ -151,20 +153,20 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
       <section class="fine-tune-dialog__panel">
         <!-- ======== 標題列 ======== -->
         <header class="flex items-center justify-between gap-4">
-          <h2 class="text-lg">#{{ props.displayNumber }} 微調</h2>
+          <h2 class="text-lg">{{ t('fineTune.title', { number: props.displayNumber }) }}</h2>
           <div class="flex items-center gap-3">
-            <span class="text-xs opacity-60">滾輪縮放、按住空白鍵拖曳平移</span>
+            <span class="text-xs opacity-60">{{ t('fineTune.zoomHint') }}</span>
             <button
               type="button"
               class="fine-tune-dialog__button inline-flex items-center gap-1 whitespace-nowrap"
               :disabled="view.scale === 1"
-              title="適應視窗"
+              :title="t('fineTune.fitView')"
               @click="handleFitView"
             >
               <AppIcon name="fit" />{{ zoomPercent }}%
             </button>
             <BackdropToggle :model-value="props.backdrop" @update:model-value="handleBackdropChange" />
-            <button type="button" class="fine-tune-dialog__close" aria-label="關閉" @click="handleClose">
+            <button type="button" class="fine-tune-dialog__close" :aria-label="t('fineTune.close')" @click="handleClose">
               <AppIcon name="close" :size="20" />
             </button>
           </div>
@@ -177,7 +179,7 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
               原圖不接受任何點擊：所有會改變結果的操作都集中在右邊的去背結果上，
               才都會記在同一份歷史紀錄裡，復原、重做都退得回來
             -->
-            <figcaption class="text-sm opacity-70">原圖（去背前，僅供對照）</figcaption>
+            <figcaption class="text-sm opacity-70">{{ t('fineTune.original') }}</figcaption>
             <div class="fine-tune-dialog__image preview-backdrop preview-backdrop--checker">
               <template v-if="originalImage">
                 <ZoomViewport v-model:view="view" class="w-full h-full">
@@ -202,7 +204,7 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
 
         <!-- ======== 背景色 ======== -->
         <div class="flex items-center gap-3">
-          <span class="text-sm w-16">背景色</span>
+          <span class="text-sm w-20">{{ t('fineTune.backgroundColor') }}</span>
           <span class="fine-tune-dialog__swatch" :style="{ backgroundColor: props.selection.backgroundColor ?? 'transparent' }"></span>
           <code class="text-sm">{{ props.selection.backgroundColor ?? '—' }}</code>
         </div>
@@ -210,7 +212,7 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
         <!-- ======== 閾值 ======== -->
         <div class="flex flex-col gap-1">
           <label class="flex items-center gap-3">
-            <span class="text-sm w-16">閾值</span>
+            <span class="text-sm w-20">{{ t('fineTune.threshold') }}</span>
             <input
               type="range"
               class="flex-1"
@@ -222,7 +224,7 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
             />
             <span class="text-sm w-8 text-right">{{ thresholdDraft }}</span>
           </label>
-          <p class="text-xs opacity-60 pl-19">數值越大，越多「接近背景色」的像素會被去除；背景沒去乾淨就調高，貼紙被吃掉就調低</p>
+          <p class="text-xs opacity-60 pl-23">{{ t('fineTune.thresholdHint') }}</p>
         </div>
 
         <!-- ======== 底部操作：修改即時套用，這裡只提供整組還原與明確的完成 ======== -->
@@ -233,9 +235,9 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
             :disabled="!hasChanges"
             @click="handleRevert"
           >
-            <AppIcon name="undo" />還原到打開前
+            <AppIcon name="undo" />{{ t('fineTune.revert') }}
           </button>
-          <button type="button" class="fine-tune-dialog__done" @click="handleClose">完成</button>
+          <button type="button" class="fine-tune-dialog__done" @click="handleClose">{{ t('fineTune.done') }}</button>
         </footer>
       </section>
     </div>
