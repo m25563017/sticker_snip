@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useEditorStore } from '@/stores/editor'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
 import type { PreviewBackdrop } from '@/types/preview'
-import type { Point, Selection } from '@/types/selection'
+import type { ManualEdit, Point, Selection } from '@/types/selection'
 import PixelCanvas from '@/components/PixelCanvas.vue'
 import AppIcon, { type IconName } from '@/components/AppIcon.vue'
 
 /**
- * 微調彈窗中的「手動修改」：在去背結果上用魔術棒或橡皮擦修正。
- * 兩種工具的操作記在同一個步驟清單（selection.manualEdits），所以只有一組復原／清除。
+ * 微調彈窗中的「手動修改」：在去背結果上用魔術棒、橡皮擦或保留筆刷修正。
+ * 只負責工具介面；修改、復原、重做都 emit 給彈窗處理，歷史紀錄由彈窗統一管理。
  */
 const props = defineProps<{
   selection: Selection
@@ -17,18 +16,27 @@ const props = defineProps<{
   /** 裁切結果左上角在原圖的位置，用來把點選位置換回原圖座標 */
   origin: Point | null
   backdrop: PreviewBackdrop
+  canUndo: boolean
+  canRedo: boolean
 }>()
 
-type EditTool = 'wand' | 'erase'
-const TOOLS: { value: EditTool; label: string; icon: IconName }[] = [
-  { value: 'wand', label: '魔術棒', icon: 'wand' },
-  { value: 'erase', label: '橡皮擦', icon: 'eraser' },
+const emit = defineEmits<{
+  /** 新增一筆手動修改（座標已換成原圖座標） */
+  edit: [edit: ManualEdit]
+  undo: []
+  redo: []
+}>()
+
+type EditTool = 'wand' | 'erase' | 'keep'
+const TOOLS: { value: EditTool; label: string; icon: IconName; hint: string }[] = [
+  { value: 'wand', label: '魔術棒', icon: 'wand', hint: '點一下，去掉同色的一整塊' },
+  { value: 'erase', label: '橡皮擦', icon: 'eraser', hint: '按住拖曳，擦掉經過的地方' },
+  { value: 'keep', label: '保留', icon: 'brush', hint: '按住拖曳，把被去掉的地方還原成原圖' },
 ]
 /** 筆刷大小（直徑）預設為範圍短邊的 5%，範圍 300 px 約 15 px */
 const BRUSH_SIZE_RATIO = 0.05
 const BRUSH_SIZE_MIN = 2
 
-const editorStore = useEditorStore()
 const activeTool = ref<EditTool>('wand')
 const brushSize = ref(
   Math.max(
@@ -54,13 +62,16 @@ function handleWandPick(point: Point): void {
   const index = (Math.round(point.y) * preview.width + Math.round(point.x)) * 4
   if (preview.data[index + 3] === 0) return
 
-  editorStore.addManualEdit(props.selection.id, { tool: 'wand', point: sourcePoint })
+  emit('edit', { tool: 'wand', point: sourcePoint })
 }
 
-function handleEraseStroke(points: Point[]): void {
+/** 橡皮擦與保留共用：差別只在記錄的工具類型 */
+function handleBrushStroke(points: Point[]): void {
+  const tool = activeTool.value
+  if (tool === 'wand') return
   const sourcePoints = points.map(toSourcePoint).filter((point): point is Point => point !== null)
   if (sourcePoints.length === 0) return
-  editorStore.addManualEdit(props.selection.id, { tool: 'erase', points: sourcePoints, radius: brushSize.value / 2 })
+  emit('edit', { tool, points: sourcePoints, radius: brushSize.value / 2 })
 }
 
 function handleSelectTool(tool: EditTool): void {
@@ -71,13 +82,12 @@ function handleBrushSizeInput(event: Event): void {
   brushSize.value = Number((event.target as HTMLInputElement).value)
 }
 
-/** 復原上一步：不分工具，拿掉最後一筆修改 */
-function handleUndoEdit(): void {
-  editorStore.undoManualEdit(props.selection.id)
+function handleUndo(): void {
+  emit('undo')
 }
 
-function handleClearEdits(): void {
-  editorStore.clearManualEdits(props.selection.id)
+function handleRedo(): void {
+  emit('redo')
 }
 </script>
 
@@ -93,12 +103,13 @@ function handleClearEdits(): void {
           class="manual-edit-panel__tool inline-flex items-center gap-1 shrink-0 whitespace-nowrap"
           :class="{ 'manual-edit-panel__tool--active': activeTool === tool.value }"
           :aria-pressed="activeTool === tool.value"
+          :title="tool.hint"
           @click="handleSelectTool(tool.value)"
         >
           <AppIcon :name="tool.icon" />{{ tool.label }}
         </button>
       </template>
-      <template v-if="activeTool === 'erase'">
+      <template v-if="activeTool !== 'wand'">
         <label class="flex items-center gap-1 ml-auto">
           <span class="opacity-70">筆刷</span>
           <input
@@ -121,30 +132,33 @@ function handleClearEdits(): void {
           :image="props.preview"
           fit="contain"
           :loupe-radius="activeTool === 'wand' ? 0 : undefined"
-          :brush-radius="activeTool === 'erase' ? brushSize / 2 : undefined"
+          :brush-radius="activeTool !== 'wand' ? brushSize / 2 : undefined"
+          :brush-tone="activeTool === 'keep' ? 'keep' : 'erase'"
           @pick="handleWandPick"
-          @stroke="handleEraseStroke"
+          @stroke="handleBrushStroke"
         />
       </template>
     </div>
 
-    <!-- ======== 復原：魔術棒、橡皮擦共用同一個步驟記錄 ======== -->
+    <!-- ======== 復原／重做：魔術棒、橡皮擦共用同一份歷史紀錄 ======== -->
     <div class="flex items-center gap-2">
       <button
         type="button"
         class="manual-edit-panel__button inline-flex items-center gap-1 whitespace-nowrap"
-        :disabled="props.selection.manualEdits.length === 0"
-        @click="handleUndoEdit"
+        :disabled="!props.canUndo"
+        title="Ctrl + Z"
+        @click="handleUndo"
       >
-        <AppIcon name="undo" />復原上一步
+        <AppIcon name="undo" />復原
       </button>
       <button
         type="button"
         class="manual-edit-panel__button inline-flex items-center gap-1 whitespace-nowrap"
-        :disabled="props.selection.manualEdits.length === 0"
-        @click="handleClearEdits"
+        :disabled="!props.canRedo"
+        title="Ctrl + Y"
+        @click="handleRedo"
       >
-        <AppIcon name="trash" />全部清除
+        <AppIcon name="redo" />重做
       </button>
     </div>
   </figure>

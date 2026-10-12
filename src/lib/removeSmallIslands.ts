@@ -25,8 +25,14 @@ export function minIslandArea(width: number, height: number): number {
  * 那些也是貼紙的一部分，所以只用面積判斷，小到像雜點的才清掉。
  *
  * 回傳新的 PixelBuffer，不修改傳入的 image。
+ *
+ * @param isProtected 使用者用保留筆刷塗過的像素：包含它的島再小也不清，使用者的判斷優先於自動處理
  */
-export function removeSmallIslands(image: PixelBuffer, minArea: number): PixelBuffer {
+export function removeSmallIslands(
+  image: PixelBuffer,
+  minArea: number,
+  isProtected: (pixelIndex: number) => boolean = () => false,
+): PixelBuffer {
   const { width, height } = image
   const data = new Uint8ClampedArray(image.data)
 
@@ -35,7 +41,7 @@ export function removeSmallIslands(image: PixelBuffer, minArea: number): PixelBu
     height,
     (pixelIndex) => data[pixelIndex * 4 + 3] !== 0,
     (pixels) => {
-      if (pixels.length >= minArea) return
+      if (pixels.length >= minArea || pixels.some(isProtected)) return
       for (const pixelIndex of pixels) data[pixelIndex * 4 + 3] = 0
     },
   )

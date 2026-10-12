@@ -123,6 +123,55 @@ describe('processSelection', () => {
     expect(alphaAt(result, 5, 5)).toBe(255)
   })
 
+  describe('保留筆刷', () => {
+    // makeSourceImage：10×10 白底，(4,4)~(6,6) 紅色物件；makeSelection 的範圍從 (1,1) 開始
+    const keepAt = (x: number, y: number): RectLikeSelection => ({
+      ...makeSelection('#ffffff'),
+      manualEdits: [{ tool: 'keep', points: [{ x, y }], radius: 1 }],
+    })
+
+    it('把已經被去背的地方還原成原圖', () => {
+      // 原圖 (2,2) 是白色背景，本來會被去掉；塗了保留就還原成不透明的白色
+      const result = processSelection(makeSourceImage(), keepAt(2, 2), 'smooth')
+
+      // 原圖 (2,2) = 裁切結果 (1,1)
+      expect(Array.from(result.data.subarray((1 * 8 + 1) * 4, (1 * 8 + 1) * 4 + 4))).toEqual([255, 255, 255, 255])
+    })
+
+    it('只塗到小裝飾的一部分，整個小裝飾都不會被清雜點清掉', () => {
+      // 在原圖 (1,7)~(2,8) 加一塊 2×2 的紅色小裝飾：只有 4 px，平常會被當成雜點清掉
+      const source = makeSourceImage()
+      for (const [x, y] of [[1, 7], [2, 7], [1, 8], [2, 8]]) {
+        source.data[(y * 10 + x) * 4 + 1] = 0
+        source.data[(y * 10 + x) * 4 + 2] = 0
+      }
+      // 保留筆刷只碰到其中一格 (1,7)
+      const selection: RectLikeSelection = {
+        ...makeSelection('#ffffff'),
+        manualEdits: [{ tool: 'keep', points: [{ x: 1, y: 7 }], radius: 0.5 }],
+      }
+
+      const result = processSelection(source, selection, 'pixel')
+
+      // 沒塗到的 (2,8) 也留下來（裁切後座標 (1,7)）
+      expect(alphaAt(result, 1, 7)).toBe(255)
+    })
+
+    it('同一個地方先保留、再擦除 → 以後做的擦除為準', () => {
+      const selection: RectLikeSelection = {
+        ...makeSelection('#ffffff'),
+        manualEdits: [
+          { tool: 'keep', points: [{ x: 5, y: 5 }], radius: 1 },
+          { tool: 'erase', points: [{ x: 5, y: 5 }], radius: 1 },
+        ],
+      }
+
+      const result = processSelection(makeSourceImage(), selection, 'pixel')
+
+      expect(alphaAt(result, 4, 4)).toBe(0) // 原圖 (5,5)，物件中心
+    })
+  })
+
   it('背景色尚未偵測時只裁切、不去背', () => {
     const result = processSelection(makeSourceImage(), makeSelection(null), 'smooth')
 

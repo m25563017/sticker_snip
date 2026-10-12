@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useEventListener } from '@vueuse/core'
 import { useEditorStore } from '@/stores/editor'
+import { useUndoHistory } from '@/composables/useUndoHistory'
+import { useDebouncedDraft } from '@/composables/useDebouncedDraft'
 import { cropSelection } from '@/lib/cropSelection'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
 import type { PreviewBackdrop } from '@/types/preview'
-import type { Selection } from '@/types/selection'
+import type { ManualEdit, Selection } from '@/types/selection'
 import PixelCanvas from '@/components/PixelCanvas.vue'
 import BackdropToggle from '@/components/BackdropToggle.vue'
 import ManualEditPanel from '@/components/ManualEditPanel.vue'
@@ -54,48 +56,44 @@ const originalRegion = computed(() => {
 })
 const originalImage = computed(() => originalRegion.value?.image ?? null)
 
-// ======== 閾值 ========
+// ======== 手動修改：復原／重做 ========
 /**
- * 滑桿顯示的值與 store 分開：拖動時數字即時跟著動，
- * 但寫回 store（觸發重算去背）要 debounce，兩者不能共用同一個值。
+ * 歷史紀錄放在彈窗而不是 ManualEditPanel：「還原到打開前」也在這裡，
+ * 兩種「回到過去」的操作要一起管理（還原後清空歷史，避免復原到還原前的狀態）。
+ * 只在彈窗打開期間有效，關閉就消失。
  */
-const thresholdDraft = ref(props.selection.threshold)
-watch(
+const history = useUndoHistory<ManualEdit[]>()
+
+function handleAddEdit(edit: ManualEdit): void {
+  history.record(props.selection.manualEdits)
+  editorStore.addManualEdit(props.selection.id, edit)
+}
+
+function handleUndo(): void {
+  const previous = history.undo(props.selection.manualEdits)
+  if (previous) editorStore.updateSelection(props.selection.id, { manualEdits: previous })
+}
+
+function handleRedo(): void {
+  const next = history.redo(props.selection.manualEdits)
+  if (next) editorStore.updateSelection(props.selection.id, { manualEdits: next })
+}
+
+// ======== 閾值 ========
+/** 拖動時數字即時跟著動，寫回 store（觸發重算去背）等停手；還原時可取消、關閉時自動送出 */
+const {
+  draft: thresholdDraft,
+  set: setThreshold,
+  cancel: cancelPendingThreshold,
+} = useDebouncedDraft(
   () => props.selection.threshold,
-  (value) => {
-    thresholdDraft.value = value
-  },
+  (threshold) => editorStore.updateSelection(props.selection.id, { threshold }),
+  THRESHOLD_DEBOUNCE_MS,
 )
 
-/**
- * 自己管理 debounce 的計時器，而不用 useDebounceFn：
- * 「還原」時必須能取消還沒送出的滑桿值，否則 0.1 秒後它會把剛還原的閾值又蓋掉；
- * 關閉彈窗時則要立刻送出，不能讓最後一次調整消失。
- */
-let pendingThreshold: number | null = null
-let thresholdTimer: ReturnType<typeof setTimeout> | undefined
-
-function flushThreshold(): void {
-  clearTimeout(thresholdTimer)
-  if (pendingThreshold === null) return
-  editorStore.updateSelection(props.selection.id, { threshold: pendingThreshold })
-  pendingThreshold = null
-}
-
-function cancelPendingThreshold(): void {
-  clearTimeout(thresholdTimer)
-  pendingThreshold = null
-}
-
 function handleThresholdInput(event: Event): void {
-  const value = Number((event.target as HTMLInputElement).value)
-  thresholdDraft.value = value
-  pendingThreshold = value
-  clearTimeout(thresholdTimer)
-  thresholdTimer = setTimeout(flushThreshold, THRESHOLD_DEBOUNCE_MS)
+  setThreshold(Number((event.target as HTMLInputElement).value))
 }
-
-onBeforeUnmount(flushThreshold)
 
 // ======== 還原 ========
 const hasChanges = computed(() => {
@@ -107,6 +105,7 @@ function handleRevert(): void {
   cancelPendingThreshold()
   editorStore.updateSelection(props.selection.id, takeSnapshot(snapshot))
   thresholdDraft.value = snapshot.threshold
+  history.clear()
 }
 
 // ======== 關閉 ========
@@ -118,8 +117,20 @@ function handleBackdropChange(value: PreviewBackdrop): void {
   emit('update:backdrop', value)
 }
 
+/** 快捷鍵：Esc 關閉；Ctrl（Mac 為 Cmd）+ Z 復原，加 Shift 或改按 Y 為重做 */
 useEventListener(document, 'keydown', (event: KeyboardEvent) => {
-  if (event.key === 'Escape') handleClose()
+  if (event.key === 'Escape') {
+    handleClose()
+    return
+  }
+  if (!event.ctrlKey && !event.metaKey) return
+  const key = event.key.toLowerCase()
+  if (key === 'z' || key === 'y') {
+    // 擋掉瀏覽器自己的復原（例如對輸入框的復原），避免兩邊同時作用
+    event.preventDefault()
+    if (key === 'y' || event.shiftKey) handleRedo()
+    else handleUndo()
+  }
 })
 </script>
 
@@ -143,7 +154,7 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
           <figure class="flex flex-col gap-1">
             <!--
               原圖不接受任何點擊：所有會改變結果的操作都集中在右邊的去背結果上，
-              才都會記在同一個步驟清單裡，「復原上一步」退得回來
+              才都會記在同一份歷史紀錄裡，復原、重做都退得回來
             -->
             <figcaption class="text-sm opacity-70">原圖（去背前，僅供對照）</figcaption>
             <div class="fine-tune-dialog__image preview-backdrop preview-backdrop--checker">
@@ -157,6 +168,11 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
             :preview="props.preview"
             :origin="originalRegion?.origin ?? null"
             :backdrop="props.backdrop"
+            :can-undo="history.canUndo.value"
+            :can-redo="history.canRedo.value"
+            @edit="handleAddEdit"
+            @undo="handleUndo"
+            @redo="handleRedo"
           />
         </div>
 

@@ -21,8 +21,10 @@ const props = withDefaults(
     loupeRadius?: number
     /** 有傳就進入筆刷模式（橡皮擦）：按住拖曳畫出路徑，值為筆刷半徑（圖片 px） */
     brushRadius?: number
+    /** 筆刷效果，決定拖曳中的預覽顏色 */
+    brushTone?: 'erase' | 'keep'
   }>(),
-  { fit: 'shrink', loupeRadius: undefined, brushRadius: undefined },
+  { fit: 'shrink', loupeRadius: undefined, brushRadius: undefined, brushTone: 'erase' },
 )
 
 const emit = defineEmits<{
@@ -33,7 +35,11 @@ const emit = defineEmits<{
 }>()
 
 /** 拖曳中的路徑預覽色：半透明紅，看得出擦到哪裡，也看得到底下的圖 */
-const BRUSH_PREVIEW_COLOR = 'rgba(239, 68, 68, 0.55)'
+const BRUSH_PREVIEW_COLORS = {
+  erase: 'rgba(239, 68, 68, 0.55)',
+  // 保留用綠色：和橡皮擦的紅色一眼就能分辨「正在救回」還是「正在擦掉」
+  keep: 'rgba(34, 197, 94, 0.55)',
+}
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 const isBrushMode = computed(() => props.brushRadius !== undefined)
@@ -96,7 +102,7 @@ let strokePoints: Point[] | null = null
 function drawStrokeSegment(from: Point, to: Point): void {
   const ctx = canvasRef.value?.getContext('2d')
   if (!ctx || props.brushRadius === undefined) return
-  ctx.strokeStyle = BRUSH_PREVIEW_COLOR
+  ctx.strokeStyle = BRUSH_PREVIEW_COLORS[props.brushTone]
   ctx.lineWidth = props.brushRadius * 2
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'

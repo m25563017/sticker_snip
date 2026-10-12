@@ -113,3 +113,17 @@ describe('minIslandArea', () => {
     expect(minIslandArea(2000, 2000)).toBe(400)
   })
 })
+
+describe('removeSmallIslands（保護保留筆刷塗過的區塊）', () => {
+  it('包含受保護像素的小島不會被清掉', () => {
+    const image = fromAlphaAscii([
+      '#.......', //
+      '..####..',
+      '..####..',
+    ])
+
+    const result = removeSmallIslands(image, 5, (pixelIndex) => pixelIndex === 0)
+
+    expect(toAlphaAscii(result)[0]).toBe('#.......')
+  })
+})

@@ -172,30 +172,20 @@ describe('useEditorStore', () => {
     expect(store.selections[0].backgroundColor).toBe('#ffffff')
   })
 
-  it('手動修改：魔術棒與橡皮擦依序記錄在同一個清單，座標四捨五入', () => {
+  it('手動修改：魔術棒、橡皮擦、保留依序記錄在同一個清單，座標四捨五入', () => {
     const store = useEditorStore()
     const created = store.addSelection(makeRectShape())
 
     store.addManualEdit(created.id, { tool: 'wand', point: { x: 10.4, y: 20.6 } })
     store.addManualEdit(created.id, { tool: 'erase', points: [{ x: 1.2, y: 2.7 }], radius: 5 })
+    store.addManualEdit(created.id, { tool: 'keep', points: [{ x: 3.6, y: 4 }], radius: 2 })
 
     expect(store.selections[0].manualEdits).toEqual([
       { tool: 'wand', point: { x: 10, y: 21 } },
       { tool: 'erase', points: [{ x: 1, y: 3 }], radius: 5 },
+      // 保留筆刷要維持 keep，不能在記錄時被改成 erase
+      { tool: 'keep', points: [{ x: 4, y: 4 }], radius: 2 },
     ])
-  })
-
-  it('復原上一步：不分工具拿掉最後一筆；全部清除則清空', () => {
-    const store = useEditorStore()
-    const created = store.addSelection(makeRectShape())
-    store.addManualEdit(created.id, { tool: 'wand', point: { x: 1, y: 1 } })
-    store.addManualEdit(created.id, { tool: 'erase', points: [{ x: 2, y: 2 }], radius: 3 })
-
-    store.undoManualEdit(created.id)
-    expect(store.selections[0].manualEdits.map((edit) => edit.tool)).toEqual(['wand'])
-
-    store.clearManualEdits(created.id)
-    expect(store.selections[0].manualEdits).toEqual([])
   })
 
   describe('自動偵測', () => {

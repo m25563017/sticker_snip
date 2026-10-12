@@ -48,8 +48,11 @@ interface SelectionBase {
  * - wand（魔術棒）：以點到的顏色為基準再做一次 flood fill，
  *   去掉被物件包圍、從邊界流不進去的背景（例如花圈中間、氣球線之間的空隙）
  * - erase（橡皮擦）：沿路徑直接擦成透明，不管顏色，處理魔術棒選不乾淨的東西
+ * - keep（保留）：沿路徑強制還原成原圖，救回被去背、擦除、清雜點誤刪的部分
  */
-export type ManualEdit = { tool: 'wand'; point: Point } | { tool: 'erase'; points: Point[]; radius: number }
+export type ManualEdit =
+  | { tool: 'wand'; point: Point }
+  | { tool: 'erase' | 'keep'; points: Point[]; radius: number }
 
 /** 矩形與橢圓：用 bounds 描述 */
 export interface RectLikeSelection extends SelectionBase {

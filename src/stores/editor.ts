@@ -189,18 +189,8 @@ export const useEditorStore = defineStore('editor', () => {
     const rounded: ManualEdit =
       edit.tool === 'wand'
         ? { tool: 'wand', point: roundPoint(edit.point) }
-        : { tool: 'erase', points: edit.points.map(roundPoint), radius: edit.radius }
+        : { tool: edit.tool, points: edit.points.map(roundPoint), radius: edit.radius }
     target.manualEdits = [...target.manualEdits, rounded]
-  }
-
-  /** 復原上一步：不分工具，拿掉最後一筆修改 */
-  function undoManualEdit(id: number): void {
-    const target = selections.value.find((item) => item.id === id)
-    if (target) target.manualEdits = target.manualEdits.slice(0, -1)
-  }
-
-  function clearManualEdits(id: number): void {
-    updateSelection(id, { manualEdits: [] })
   }
 
   function removeSelection(id: number): void {
@@ -253,8 +243,6 @@ export const useEditorStore = defineStore('editor', () => {
     updateSelection,
     refreshBackgroundColor,
     addManualEdit,
-    undoManualEdit,
-    clearManualEdits,
     reset,
   }
 })
