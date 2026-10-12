@@ -34,7 +34,7 @@ function handleToggle(event: Event): void {
 <style scoped>
 .effect-section {
   padding-top: 10px;
-  border-top: 1px solid #e5e5e5;
+  border-top: 2px dashed var(--color-ink);
 
   .effect-section__header {
     cursor: pointer;

@@ -65,16 +65,15 @@ function handleClearAuto(): void {
 </script>
 
 <template>
-  <div class="select-toolbar flex flex-wrap items-center gap-x-4 gap-y-1 py-2">
+  <div class="select-toolbar hand-panel flex flex-wrap items-center gap-x-4 gap-y-1 mt-4 mb-3 px-3 py-2 text-sm">
     <!-- ======== 手動框選的形狀 ======== -->
     <div class="flex items-center gap-1" role="radiogroup" :aria-label="t('selectToolbar.shapeGroup')">
-      <span class="text-sm mr-1">{{ t('selectToolbar.shape') }}</span>
+      <span class="mr-1">{{ t('selectToolbar.shape') }}</span>
       <template v-for="shape in SHAPES" :key="shape.value">
         <button
           type="button"
           role="radio"
-          class="select-toolbar__shape inline-flex items-center gap-1 whitespace-nowrap"
-          :class="{ 'select-toolbar__shape--active': editorStore.drawShape === shape.value }"
+          class="hand-button"
           :aria-checked="editorStore.drawShape === shape.value"
           :title="t(`selectToolbar.shapes.${shape.value}.hint`)"
           @click="handleSelectShape(shape.value)"
@@ -85,20 +84,20 @@ function handleClearAuto(): void {
     </div>
 
     <!-- ======== 自動偵測 ======== -->
-    <span class="text-sm">{{ t('selectToolbar.autoCount', { count: autoCount }, autoCount) }}</span>
+    <span>{{ t('selectToolbar.autoCount', { count: autoCount }, autoCount) }}</span>
 
     <label class="flex items-center gap-2">
-      <span class="text-sm">{{ t('selectToolbar.mergeDistance') }}</span>
+      <span>{{ t('selectToolbar.mergeDistance') }}</span>
       <input type="range" min="0" :max="maxDistance" step="1" :value="distanceDraft" @input="handleDistanceInput" />
-      <span class="text-sm w-12">{{ distanceDraft }} px</span>
+      <span class="w-12">{{ distanceDraft }} px</span>
     </label>
 
-    <button type="button" class="select-toolbar__button inline-flex items-center gap-1 whitespace-nowrap" @click="handleRedetect">
+    <button type="button" class="hand-button" @click="handleRedetect">
       <AppIcon name="refresh" />{{ t('selectToolbar.redetect') }}
     </button>
     <button
       type="button"
-      class="select-toolbar__button inline-flex items-center gap-1 whitespace-nowrap"
+      class="hand-button"
       :disabled="autoCount === 0"
       @click="handleClearAuto"
     >
@@ -111,35 +110,3 @@ function handleClearAuto(): void {
   </div>
 </template>
 
-<style scoped>
-.select-toolbar {
-  .select-toolbar__shape {
-    padding: 1px 10px;
-    font-size: 0.875rem;
-    border: 1px solid #ccc;
-    border-radius: 999px;
-
-    &.select-toolbar__shape--active {
-      color: #fff;
-      background-color: #111;
-      border-color: #111;
-    }
-  }
-
-  .select-toolbar__button {
-    padding: 2px 10px;
-    font-size: 0.875rem;
-    border: 1px solid #999;
-    border-radius: 6px;
-
-    &:hover:not(:disabled) {
-      background-color: rgba(0, 0, 0, 0.05);
-    }
-
-    &:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-  }
-}
-</style>

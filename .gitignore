@@ -26,3 +26,6 @@ coverage
 *.sw?
 CLAUDE.md
 
+
+# 字型原檔快取（npm run fonts 會自動下載）
+.font-cache

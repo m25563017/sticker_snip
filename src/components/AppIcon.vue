@@ -9,6 +9,7 @@ import { computed } from 'vue'
  * rect、ellipse 由 Lucide 的 square、circle 改成長方形、橢圓，以對應框選形狀。
  *
  * 線條顏色用 currentColor：跟著按鈕文字顏色走，選中（反白）時不必另外設定圖示顏色。
+ * 外觀再套上 HandDrawnFilter 的抖動濾鏡，工整的線條變成手繪感（需求第 6 節）。
  */
 
 type IconElement =
@@ -111,3 +112,9 @@ const elements = computed(() => ICONS[props.name].map(({ tag, ...attrs }) => ({ 
     </template>
   </svg>
 </template>
+
+<style scoped>
+.app-icon {
+  filter: url(#hand-drawn);
+}
+</style>

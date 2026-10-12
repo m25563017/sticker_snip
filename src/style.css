@@ -2,21 +2,44 @@
 
 /* ========================================================================
    設計方向：手繪塗鴉／復古小畫家風（需求文件第 6 節）
-   - 黑白為主，色彩只出現在色票與預覽縮圖本身
-   - 邊框、控制元件之後用 SVG／CSS 做出手繪不規則感
-   這裡只放全域基底，元件細節樣式寫在各自的 SFC
+   - 黑白為主，色彩只出現在功能必要處（色票、畫布框線、筆刷預覽、預覽圖本身）
+   - 粗黑框、黑底白字標題列、錯位硬陰影、灰色網點底紋
+   這裡放全域基底與共用元件樣式（hand-*），元件各自的版面細節寫在 SFC
    ======================================================================== */
 
+/* ======== 手寫字體：子集化後內嵌進 HTML（需求 7：不需網路），由 npm run fonts 產生 ======== */
+/* 英文用 Patrick Hand；中文字找不到時自動往下一個字型找，交給 jf open 粉圓（改名為 Hand CJK，見 scripts/subset-fonts.mjs） */
+@font-face {
+  font-family: 'Hand Latin';
+  src: url('./assets/fonts/hand-latin.woff2') format('woff2');
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'Hand CJK';
+  src: url('./assets/fonts/hand-cjk.woff2') format('woff2');
+  font-display: block;
+}
+
 @theme {
-  /* 手寫感字體之後再導入（需求第 6 節），現階段先用系統預設字體 */
-  --font-hand: system-ui, 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+  /* 子集裡沒有的字（例如使用者輸入的檔名前綴）退回系統字型 */
+  --font-hand: 'Hand Latin', 'Hand CJK', system-ui, 'Microsoft JhengHei', sans-serif;
 
   --color-ink: #111111;
-  --color-paper: #fafaf7;
+  --color-paper: #ffffff;
+  /* 網點底紋的底色與點色 */
+  --color-desk: #d6d6d6;
+  --color-dot: #a8a8a8;
 }
 
 :root {
   color-scheme: light;
+  /*
+   * 手繪感的歪斜邊角：四個角的圓弧大小都不一樣，看起來像徒手畫的方框，
+   * 不必用圖片或 SVG，效能零負擔
+   */
+  --hand-radius: 3px 9px 4px 10px / 10px 4px 9px 3px;
+  --hand-border: 2px solid var(--color-ink);
 }
 
 html,
@@ -26,7 +49,7 @@ body {
 }
 
 body {
-  background: var(--color-paper);
+  background-color: var(--color-desk);
   color: var(--color-ink);
   font-family: var(--font-hand);
   -webkit-font-smoothing: antialiased;
@@ -34,7 +57,159 @@ body {
 }
 
 #app {
-  min-height: 100%;
+  height: 100%;
+}
+
+/* ========================================================================
+   共用元件樣式：放在 components 層，元件上的 Tailwind class 仍可覆蓋
+   ======================================================================== */
+@layer components {
+  /* ======== 網點底紋：像早期點陣圖的灰色網點，取代純色填滿 ======== */
+  .hand-dots {
+    background-color: var(--color-desk);
+    background-image: radial-gradient(var(--color-dot) 0.8px, transparent 1px);
+    background-size: 4px 4px;
+  }
+
+  /* ======== 面板：粗黑框，標題是黑底白字的橫條 ======== */
+  .hand-panel {
+    background-color: var(--color-paper);
+    border: 3px solid var(--color-ink);
+  }
+
+  .hand-panel-title {
+    padding: 4px 12px;
+    color: var(--color-paper);
+    background-color: var(--color-ink);
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+
+  /* ======== 按鈕：白底黑框，選中時反白成黑底白字 ======== */
+  .hand-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 12px;
+    white-space: nowrap;
+    background-color: var(--color-paper);
+    border: var(--hand-border);
+    border-radius: var(--hand-radius);
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background-color: #ececec;
+    }
+
+    &[aria-pressed='true'],
+    &[aria-checked='true'] {
+      color: var(--color-paper);
+      background-color: var(--color-ink);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* 主要動作（下載、預覽）：黑底白字加錯位硬陰影，整個畫面最搶眼的按鈕 */
+    &.hand-button--primary {
+      color: var(--color-paper);
+      background-color: var(--color-ink);
+      box-shadow: 3px 3px 0 #777;
+
+      &:hover:not(:disabled) {
+        background-color: #333;
+      }
+
+      /* 按下去時陰影消失、按鈕往陰影方向移動，像真的被壓下去 */
+      &:active:not(:disabled) {
+        box-shadow: none;
+        transform: translate(3px, 3px);
+      }
+    }
+  }
+}
+
+/* ========================================================================
+   原生表單元件：全站統一換成手繪風，各元件不必再加 class
+   放在 base 層，個別元件需要時仍可覆蓋
+   ======================================================================== */
+@layer base {
+  /* ======== 滑桿：黑色粗線＋方形拉柄 ======== */
+  input[type='range'] {
+    appearance: none;
+    height: 18px;
+    background: transparent;
+    cursor: pointer;
+
+    &::-webkit-slider-runnable-track {
+      height: 3px;
+      background-color: var(--color-ink);
+    }
+
+    &::-moz-range-track {
+      height: 3px;
+      background-color: var(--color-ink);
+    }
+
+    &::-webkit-slider-thumb {
+      appearance: none;
+      width: 12px;
+      height: 18px;
+      /* 拉柄高度 18、軌道 3：往上移 (18 - 3) / 2 才會置中 */
+      margin-top: -7.5px;
+      background-color: var(--color-paper);
+      border: var(--hand-border);
+      border-radius: 2px;
+    }
+
+    &::-moz-range-thumb {
+      width: 8px;
+      height: 14px;
+      background-color: var(--color-paper);
+      border: var(--hand-border);
+      border-radius: 2px;
+    }
+  }
+
+  /* ======== 勾選框：方框，勾選時畫上一個 X ======== */
+  input[type='checkbox'] {
+    appearance: none;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    background-color: var(--color-paper);
+    border: var(--hand-border);
+    border-radius: 2px 4px 2px 3px;
+    cursor: pointer;
+
+    /* 兩條對角線疊出 X：線寬約 2px，置中在方框對角線上 */
+    &:checked {
+      background-image:
+        linear-gradient(45deg, transparent 44%, var(--color-ink) 44% 56%, transparent 56%),
+        linear-gradient(-45deg, transparent 44%, var(--color-ink) 44% 56%, transparent 56%);
+    }
+  }
+
+  /* ======== 下拉選單、文字框：直角黑框 ======== */
+  select,
+  input[type='text'] {
+    background-color: var(--color-paper);
+    border: var(--hand-border);
+    border-radius: 2px;
+  }
+
+  input[type='color'] {
+    border: var(--hand-border);
+    border-radius: 2px;
+  }
+
+  /* 鍵盤操作時的焦點框：黑白虛線，不用瀏覽器預設的藍框 */
+  :focus-visible {
+    outline: 2px dashed var(--color-ink);
+    outline-offset: 2px;
+  }
 }
 
 /* ========================================================================

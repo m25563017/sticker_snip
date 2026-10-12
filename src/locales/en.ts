@@ -33,6 +33,7 @@ export default {
     loading: 'Loading image…',
     drop: 'Drop your sticker sheet here',
     browse: 'or click to choose a file',
+    tagline: 'One image, many stickers, one flat background color',
     invalidType: {
       title: 'Unsupported file',
       message: 'Please upload an image file (PNG, JPG, etc.). The selected file is not an image.',

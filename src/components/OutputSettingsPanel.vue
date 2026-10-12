@@ -68,66 +68,65 @@ function handleEdgeQualityChange(event: Event): void {
 </script>
 
 <template>
-  <aside class="output-settings-panel flex flex-col gap-3" :aria-label="t('outputSettings.title')">
-    <h2 class="text-sm opacity-70">{{ t('outputSettings.title') }}</h2>
+  <aside class="output-settings-panel hand-panel flex flex-col min-h-0" :aria-label="t('outputSettings.title')">
+    <h2 class="hand-panel-title">{{ t('outputSettings.title') }}</h2>
 
-    <!-- ======== 基本設定 ======== -->
-    <div class="flex flex-col gap-1">
+    <!-- 標題列固定，設定多到放不下時只捲動下面的內容 -->
+    <div class="flex flex-col gap-3 min-h-0 overflow-y-auto p-3">
+      <!-- ======== 基本設定 ======== -->
+      <div class="flex flex-col gap-1">
+        <label class="output-settings-panel__row">
+          <span>{{ t('outputSettings.filePrefix') }}</span>
+          <input
+            type="text"
+            class="output-settings-panel__input"
+            :maxlength="MAX_PREFIX_LENGTH"
+            :value="settings.filePrefix"
+            @input="handlePrefixInput"
+          />
+        </label>
+        <!-- 固定寬度並以「…」省略：範例檔名長短不一，不固定的話版面會跟著跳動 -->
+        <span class="output-settings-panel__example text-xs opacity-60" :title="fileNameExample">
+          → {{ fileNameExample }}
+        </span>
+      </div>
+
       <label class="output-settings-panel__row">
-        <span>{{ t('outputSettings.filePrefix') }}</span>
-        <input
-          type="text"
-          class="output-settings-panel__input"
-          :maxlength="MAX_PREFIX_LENGTH"
-          :value="settings.filePrefix"
-          @input="handlePrefixInput"
-        />
+        <span>{{ t('outputSettings.exportSize') }}</span>
+        <select class="output-settings-panel__input" :value="settings.exportSize" @change="handleSizeChange">
+          <template v-for="size in EXPORT_SIZES" :key="size">
+            <option :value="size">{{ sizeLabel(size) }}</option>
+          </template>
+        </select>
       </label>
-      <!-- 固定寬度並以「…」省略：範例檔名長短不一，不固定的話版面會跟著跳動 -->
-      <span class="output-settings-panel__example text-xs opacity-60" :title="fileNameExample">
-        → {{ fileNameExample }}
-      </span>
+
+      <label class="output-settings-panel__row">
+        <span>{{ t('outputSettings.padding') }}</span>
+        <input type="range" min="0" :max="paddingMax" step="1" :value="settings.padding" @input="handlePaddingInput" />
+        <span class="w-12 text-right">{{ settings.padding }} px</span>
+      </label>
+
+      <label class="output-settings-panel__row">
+        <span>{{ t('outputSettings.edgeQuality') }}</span>
+        <select class="output-settings-panel__input" :value="settings.edgeQuality" @change="handleEdgeQualityChange">
+          <template v-for="quality in EDGE_QUALITIES" :key="quality">
+            <option :value="quality" :title="t(`outputSettings.edgeQualities.${quality}.hint`)">
+              {{ t(`outputSettings.edgeQualities.${quality}.label`) }}
+            </option>
+          </template>
+        </select>
+      </label>
+
+      <!-- ======== 輸出效果 ======== -->
+      <BorderControls />
+      <ShadowControls />
+      <BackgroundControls />
     </div>
-
-    <label class="output-settings-panel__row">
-      <span>{{ t('outputSettings.exportSize') }}</span>
-      <select class="output-settings-panel__input" :value="settings.exportSize" @change="handleSizeChange">
-        <template v-for="size in EXPORT_SIZES" :key="size">
-          <option :value="size">{{ sizeLabel(size) }}</option>
-        </template>
-      </select>
-    </label>
-
-    <label class="output-settings-panel__row">
-      <span>{{ t('outputSettings.padding') }}</span>
-      <input type="range" min="0" :max="paddingMax" step="1" :value="settings.padding" @input="handlePaddingInput" />
-      <span class="w-12 text-right">{{ settings.padding }} px</span>
-    </label>
-
-    <label class="output-settings-panel__row">
-      <span>{{ t('outputSettings.edgeQuality') }}</span>
-      <select class="output-settings-panel__input" :value="settings.edgeQuality" @change="handleEdgeQualityChange">
-        <template v-for="quality in EDGE_QUALITIES" :key="quality">
-          <option :value="quality" :title="t(`outputSettings.edgeQualities.${quality}.hint`)">
-            {{ t(`outputSettings.edgeQualities.${quality}.label`) }}
-          </option>
-        </template>
-      </select>
-    </label>
-
-    <!-- ======== 輸出效果 ======== -->
-    <BorderControls />
-    <ShadowControls />
-    <BackgroundControls />
   </aside>
 </template>
 
 <style scoped>
 .output-settings-panel {
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-
   /* 標籤、控制項、數值三欄對齊；select 與文字框跨過數值欄 */
   .output-settings-panel__row {
     display: grid;
@@ -137,13 +136,11 @@ function handleEdgeQualityChange(event: Event): void {
     font-size: 0.875rem;
   }
 
+  /* 外框樣式由全站的手繪表單元件提供，這裡只管排版 */
   .output-settings-panel__input {
     grid-column: span 2;
     min-width: 0;
     padding: 2px 6px;
-    border: 1px solid #999;
-    border-radius: 4px;
-    background-color: #fff;
   }
 
   .output-settings-panel__example {

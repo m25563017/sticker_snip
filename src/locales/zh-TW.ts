@@ -32,6 +32,7 @@ export default {
     loading: '讀取圖片中…',
     drop: '拖曳合成圖到這裡',
     browse: '或點擊選擇檔案',
+    tagline: '一張合成圖、多張貼紙、單一底色',
     invalidType: {
       title: '檔案格式錯誤',
       message: '請上傳圖片檔案（PNG、JPG 等），目前選到的不是圖片。',

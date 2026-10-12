@@ -61,8 +61,8 @@ function handleRemove(id: number): void {
     <!-- ======== 左：預覽卡片 ======== -->
     <div class="flex flex-col flex-1 gap-4 min-w-0">
       <!-- ======== 說明 + 背景切換 ======== -->
-      <div class="flex items-center justify-between gap-4">
-        <p class="text-sm opacity-70">{{ t('review.hint') }}</p>
+      <div class="hand-panel flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2">
+        <p class="text-sm">{{ t('review.hint') }}</p>
         <BackdropToggle v-model="backdrop" />
       </div>
 
@@ -88,7 +88,7 @@ function handleRemove(id: number): void {
               </span>
             </button>
             <!-- 按鈕裡不能再放按鈕，所以刪除鈕放在卡片旁邊，再用定位疊到右上角 -->
-            <button type="button" class="review-grid__remove" :aria-label="t('review.removeLabel', { number: index + 1 })" :title="t('common.delete')" @click="handleRemove(selection.id)">
+            <button type="button" class="review-grid__remove hand-button" :aria-label="t('review.removeLabel', { number: index + 1 })" :title="t('common.delete')" @click="handleRemove(selection.id)">
               <AppIcon name="trash" />
             </button>
           </li>
@@ -116,7 +116,6 @@ function handleRemove(id: number): void {
   .review-grid__settings {
     flex-shrink: 0;
     width: 18rem;
-    overflow-y: auto;
   }
 
   .review-grid__list {
@@ -127,10 +126,13 @@ function handleRemove(id: number): void {
     padding-bottom: 8px;
   }
 
+  /* 和縮圖列表的提示一樣，像貼在桌上的便條 */
   .review-grid__empty {
-    padding: 48px 0;
-    text-align: center;
-    opacity: 0.6;
+    align-self: center;
+    margin-top: 48px;
+    padding: 8px 16px;
+    background-color: var(--color-paper);
+    border: 2px dashed var(--color-ink);
   }
 
   .review-grid__item {
@@ -143,26 +145,16 @@ function handleRemove(id: number): void {
     }
   }
 
+  /* 外觀用共用的 hand-button，這裡只負責疊到卡片右上角 */
   .review-grid__remove {
     position: absolute;
     top: 6px;
     right: 6px;
-    display: flex;
-    align-items: center;
     justify-content: center;
-    width: 28px;
+    width: 30px;
     height: 28px;
-    color: rgb(220, 38, 38);
-    background-color: var(--color-paper);
-    border: 1px solid #ddd;
-    border-radius: 50%;
+    padding: 0;
     opacity: 0;
-
-    &:hover {
-      color: #fff;
-      background-color: rgb(220, 38, 38);
-      border-color: rgb(220, 38, 38);
-    }
   }
 
   .review-grid__card {
@@ -171,12 +163,14 @@ function handleRemove(id: number): void {
     gap: 6px;
     width: 100%;
     padding: 8px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
+    background-color: var(--color-paper);
+    border: var(--hand-border);
+    border-radius: var(--hand-radius);
     text-align: left;
 
+    /* 滑過時浮起來：多一道錯位陰影，提示「可以點進去微調」 */
     &:hover {
-      border-color: rgb(37, 99, 235);
+      box-shadow: 4px 4px 0 var(--color-ink);
     }
   }
 
@@ -191,9 +185,9 @@ function handleRemove(id: number): void {
   .review-grid__badge {
     padding: 0 6px;
     font-size: 0.75rem;
-    color: rgb(234, 88, 12);
-    border: 1px solid rgb(234, 88, 12);
-    border-radius: 999px;
+    color: var(--color-paper);
+    background-color: var(--color-ink);
+    border-radius: var(--hand-radius);
   }
 }
 </style>

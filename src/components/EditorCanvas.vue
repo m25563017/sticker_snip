@@ -9,6 +9,9 @@ import { rectFromPoints } from '@/lib/rect'
 import { pointsBounds, selectionBounds } from '@/lib/selectionShape'
 import type { Bounds, Point, Selection } from '@/types/selection'
 
+/** 圖片四周預留的空間（px），放得下外框和錯位陰影，不會被容器裁掉 */
+const FRAME_MARGIN = 10
+
 const editorStore = useEditorStore()
 const containerRef = ref<HTMLDivElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -53,8 +56,8 @@ function redraw(): void {
   const { width, height, scale } = computeContainSize(
     bitmap.width,
     bitmap.height,
-    container.clientWidth,
-    container.clientHeight,
+    container.clientWidth - FRAME_MARGIN * 2,
+    container.clientHeight - FRAME_MARGIN * 2,
   )
   if (width === 0 || height === 0) return
 
@@ -147,6 +150,12 @@ watch(() => [editorStore.selections, editorStore.activeSelectionId], redrawOverl
 
 <style scoped>
 .editor-canvas {
+  /* 用 outline 而不是 border：outline 不佔版面，畫布尺寸和座標換算都不受影響 */
+  .editor-canvas__stage {
+    outline: 2px solid var(--color-ink);
+    box-shadow: 6px 6px 0 var(--color-ink);
+  }
+
   .editor-canvas__overlay {
     /* 觸控裝置上拖曳時，不讓瀏覽器把手勢當成捲動頁面 */
     touch-action: none;

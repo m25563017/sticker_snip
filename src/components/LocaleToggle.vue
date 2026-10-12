@@ -30,8 +30,8 @@ function handleSelect(value: Locale): void {
 <style scoped>
 .locale-toggle {
   white-space: nowrap;
-  border: 1px solid #ccc;
-  border-radius: 999px;
+  border: var(--hand-border);
+  border-radius: var(--hand-radius);
   overflow: hidden;
 
   .locale-toggle__option {

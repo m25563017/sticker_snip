@@ -151,14 +151,21 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
   <Teleport to="body">
     <div class="fine-tune-dialog" role="dialog" aria-modal="true" @click.self="handleClose">
       <section class="fine-tune-dialog__panel">
-        <!-- ======== 標題列 ======== -->
-        <header class="flex items-center justify-between gap-4">
+        <!-- ======== 標題列：黑底白字，和其他面板一致 ======== -->
+        <header class="fine-tune-dialog__titlebar hand-panel-title flex items-center justify-between gap-4">
           <h2 class="text-lg">{{ t('fineTune.title', { number: props.displayNumber }) }}</h2>
-          <div class="flex items-center gap-3">
+          <button type="button" class="fine-tune-dialog__close" :aria-label="t('fineTune.close')" @click="handleClose">
+            <AppIcon name="close" :size="20" />
+          </button>
+        </header>
+
+        <div class="fine-tune-dialog__body">
+          <!-- ======== 檢視：縮放、預覽背景 ======== -->
+          <div class="flex flex-wrap items-center justify-end gap-3">
             <span class="text-xs opacity-60">{{ t('fineTune.zoomHint') }}</span>
             <button
               type="button"
-              class="fine-tune-dialog__button inline-flex items-center gap-1 whitespace-nowrap"
+              class="hand-button text-sm"
               :disabled="view.scale === 1"
               :title="t('fineTune.fitView')"
               @click="handleFitView"
@@ -166,79 +173,71 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
               <AppIcon name="fit" />{{ zoomPercent }}%
             </button>
             <BackdropToggle :model-value="props.backdrop" @update:model-value="handleBackdropChange" />
-            <button type="button" class="fine-tune-dialog__close" :aria-label="t('fineTune.close')" @click="handleClose">
-              <AppIcon name="close" :size="20" />
-            </button>
           </div>
-        </header>
 
-        <!-- ======== 原圖（只供對照、不可編輯）與去背結果 ======== -->
-        <div class="grid grid-cols-2 gap-4">
-          <figure class="flex flex-col gap-1">
-            <!--
-              原圖不接受任何點擊：所有會改變結果的操作都集中在右邊的去背結果上，
-              才都會記在同一份歷史紀錄裡，復原、重做都退得回來
-            -->
-            <figcaption class="text-sm opacity-70">{{ t('fineTune.original') }}</figcaption>
-            <div class="fine-tune-dialog__image preview-backdrop preview-backdrop--checker">
-              <template v-if="originalImage">
-                <ZoomViewport v-model:view="view" class="w-full h-full">
-                  <PixelCanvas :image="originalImage" fit="contain" />
-                </ZoomViewport>
-              </template>
-            </div>
-          </figure>
-          <ManualEditPanel
-            :selection="props.selection"
-            :preview="props.preview"
-            v-model:view="view"
-            :origin="originalRegion?.origin ?? null"
-            :backdrop="props.backdrop"
-            :can-undo="history.canUndo.value"
-            :can-redo="history.canRedo.value"
-            @edit="handleAddEdit"
-            @undo="handleUndo"
-            @redo="handleRedo"
-          />
-        </div>
-
-        <!-- ======== 背景色 ======== -->
-        <div class="flex items-center gap-3">
-          <span class="text-sm w-20">{{ t('fineTune.backgroundColor') }}</span>
-          <span class="fine-tune-dialog__swatch" :style="{ backgroundColor: props.selection.backgroundColor ?? 'transparent' }"></span>
-          <code class="text-sm">{{ props.selection.backgroundColor ?? '—' }}</code>
-        </div>
-
-        <!-- ======== 閾值 ======== -->
-        <div class="flex flex-col gap-1">
-          <label class="flex items-center gap-3">
-            <span class="text-sm w-20">{{ t('fineTune.threshold') }}</span>
-            <input
-              type="range"
-              class="flex-1"
-              :min="THRESHOLD_MIN"
-              :max="THRESHOLD_MAX"
-              step="1"
-              :value="thresholdDraft"
-              @input="handleThresholdInput"
+          <!-- ======== 原圖（只供對照、不可編輯）與去背結果 ======== -->
+          <div class="grid grid-cols-2 gap-4">
+            <figure class="flex flex-col gap-1">
+              <!--
+                原圖不接受任何點擊：所有會改變結果的操作都集中在右邊的去背結果上，
+                才都會記在同一份歷史紀錄裡，復原、重做都退得回來
+              -->
+              <figcaption class="text-sm opacity-70">{{ t('fineTune.original') }}</figcaption>
+              <div class="fine-tune-dialog__image preview-backdrop preview-backdrop--checker">
+                <template v-if="originalImage">
+                  <ZoomViewport v-model:view="view" class="w-full h-full">
+                    <PixelCanvas :image="originalImage" fit="contain" />
+                  </ZoomViewport>
+                </template>
+              </div>
+            </figure>
+            <ManualEditPanel
+              :selection="props.selection"
+              :preview="props.preview"
+              v-model:view="view"
+              :origin="originalRegion?.origin ?? null"
+              :backdrop="props.backdrop"
+              :can-undo="history.canUndo.value"
+              :can-redo="history.canRedo.value"
+              @edit="handleAddEdit"
+              @undo="handleUndo"
+              @redo="handleRedo"
             />
-            <span class="text-sm w-8 text-right">{{ thresholdDraft }}</span>
-          </label>
-          <p class="text-xs opacity-60 pl-23">{{ t('fineTune.thresholdHint') }}</p>
-        </div>
+          </div>
 
-        <!-- ======== 底部操作：修改即時套用，這裡只提供整組還原與明確的完成 ======== -->
-        <footer class="flex items-center justify-between">
-          <button
-            type="button"
-            class="fine-tune-dialog__button inline-flex items-center gap-1 whitespace-nowrap"
-            :disabled="!hasChanges"
-            @click="handleRevert"
-          >
-            <AppIcon name="undo" />{{ t('fineTune.revert') }}
-          </button>
-          <button type="button" class="fine-tune-dialog__done" @click="handleClose">{{ t('fineTune.done') }}</button>
-        </footer>
+          <!-- ======== 背景色 ======== -->
+          <div class="flex items-center gap-3">
+            <span class="text-sm w-20">{{ t('fineTune.backgroundColor') }}</span>
+            <span class="fine-tune-dialog__swatch" :style="{ backgroundColor: props.selection.backgroundColor ?? 'transparent' }"></span>
+            <code class="text-sm">{{ props.selection.backgroundColor ?? '—' }}</code>
+          </div>
+
+          <!-- ======== 閾值 ======== -->
+          <div class="flex flex-col gap-1">
+            <label class="flex items-center gap-3">
+              <span class="text-sm w-20">{{ t('fineTune.threshold') }}</span>
+              <input
+                type="range"
+                class="flex-1"
+                :min="THRESHOLD_MIN"
+                :max="THRESHOLD_MAX"
+                step="1"
+                :value="thresholdDraft"
+                @input="handleThresholdInput"
+              />
+              <span class="text-sm w-8 text-right">{{ thresholdDraft }}</span>
+            </label>
+            <p class="text-xs opacity-60 pl-23">{{ t('fineTune.thresholdHint') }}</p>
+          </div>
+
+          <!-- ======== 底部操作：修改即時套用，這裡只提供整組還原與明確的完成 ======== -->
+          <footer class="flex items-center justify-between">
+            <button type="button" class="hand-button text-sm" :disabled="!hasChanges" @click="handleRevert">
+              <AppIcon name="undo" />{{ t('fineTune.revert') }}
+            </button>
+            <button type="button" class="hand-button hand-button--primary" @click="handleClose">{{ t('fineTune.done') }}</button>
+          </footer>
+        </div>
       </section>
     </div>
   </Teleport>
@@ -258,59 +257,51 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
   .fine-tune-dialog__panel {
     display: flex;
     flex-direction: column;
-    gap: 16px;
     width: min(960px, 100%);
     max-height: 100%;
-    overflow-y: auto;
-    padding: 20px;
     background-color: var(--color-paper);
-    border-radius: 12px;
+    border: 3px solid var(--color-ink);
+    box-shadow: 8px 8px 0 var(--color-ink);
+  }
+
+  /* 標題列固定在上方，內容太高時只捲動下面 */
+  .fine-tune-dialog__titlebar {
+    flex-shrink: 0;
+    text-align: left;
+  }
+
+  .fine-tune-dialog__body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px 20px 20px;
   }
 
   .fine-tune-dialog__image {
     height: 360px;
+    border: var(--hand-border);
   }
 
   .fine-tune-dialog__swatch {
     width: 24px;
     height: 24px;
-    border: 1px solid #999;
-    border-radius: 4px;
+    border: var(--hand-border);
+    border-radius: 2px;
   }
 
-  .fine-tune-dialog__button {
-    padding: 2px 10px;
-    font-size: 0.875rem;
-    border: 1px solid #999;
-    border-radius: 6px;
-
-    &:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-  }
-
-  .fine-tune-dialog__done {
-    padding: 6px 20px;
-    color: #fff;
-    background-color: rgb(37, 99, 235);
-    border-radius: 6px;
-
-    &:hover {
-      background-color: rgb(29, 78, 216);
-    }
-  }
-
+  /* 在黑色標題列上：白色叉叉，滑過時反白 */
   .fine-tune-dialog__close {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
+    width: 28px;
+    height: 28px;
 
     &:hover {
-      background-color: rgba(0, 0, 0, 0.08);
+      color: var(--color-ink);
+      background-color: var(--color-paper);
     }
   }
 }

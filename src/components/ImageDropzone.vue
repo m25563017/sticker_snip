@@ -41,11 +41,16 @@ function handleClickZone(): void {
             @change="handleFileInputChange"
         />
 
-        <p v-if="isLoading" class="text-lg">{{ t("upload.loading") }}</p>
-        <template v-else>
-            <p class="text-lg">{{ t("upload.drop") }}</p>
-            <p class="opacity-60">{{ t("upload.browse") }}</p>
-        </template>
+        <!-- 整片區域都能拖放、點擊；中間的卡片只是視覺焦點 -->
+        <div class="image-dropzone__card hand-panel">
+            <p v-if="isLoading" class="text-2xl">{{ t("upload.loading") }}</p>
+            <template v-else>
+                <p class="text-3xl">{{ t("upload.drop") }}</p>
+                <!-- 整片都能點，這裡不用真的 button，避免點一下觸發兩次選檔 -->
+                <span class="hand-button hand-button--primary">{{ t("upload.browse") }}</span>
+                <p class="text-sm">{{ t("upload.tagline") }}</p>
+            </template>
+        </div>
     </div>
 </template>
 
@@ -59,12 +64,20 @@ function handleClickZone(): void {
     height: 100%;
     width: 100%;
     cursor: pointer;
-    border: 2px dashed #999;
-    border-radius: 8px;
+    /* 平常不顯示外框，拖曳檔案進來時才出現虛線，提示「可以放開了」 */
+    border: 3px dashed transparent;
 
     &.image-dropzone--dragging {
-        border-color: #111;
-        background: rgba(0, 0, 0, 0.04);
+        border-color: var(--color-ink);
+    }
+
+    .image-dropzone__card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 20px 32px;
+        box-shadow: 5px 5px 0 var(--color-ink);
     }
 }
 </style>

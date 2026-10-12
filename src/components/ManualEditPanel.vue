@@ -108,8 +108,7 @@ function handleRedo(): void {
       <template v-for="tool in TOOLS" :key="tool.value">
         <button
           type="button"
-          class="manual-edit-panel__tool inline-flex items-center gap-1 shrink-0 whitespace-nowrap"
-          :class="{ 'manual-edit-panel__tool--active': activeTool === tool.value }"
+          class="hand-button shrink-0"
           :aria-pressed="activeTool === tool.value"
           :title="t(`manualEdit.tools.${tool.value}.hint`)"
           @click="handleSelectTool(tool.value)"
@@ -154,7 +153,7 @@ function handleRedo(): void {
     <div class="flex items-center gap-2">
       <button
         type="button"
-        class="manual-edit-panel__button inline-flex items-center gap-1 whitespace-nowrap"
+        class="hand-button text-sm"
         :disabled="!props.canUndo"
         title="Ctrl + Z"
         @click="handleUndo"
@@ -163,7 +162,7 @@ function handleRedo(): void {
       </button>
       <button
         type="button"
-        class="manual-edit-panel__button inline-flex items-center gap-1 whitespace-nowrap"
+        class="hand-button text-sm"
         :disabled="!props.canRedo"
         title="Ctrl + Y"
         @click="handleRedo"
@@ -179,30 +178,7 @@ function handleRedo(): void {
   .manual-edit-panel__image {
     height: 360px;
     cursor: crosshair;
-  }
-
-  .manual-edit-panel__tool {
-    padding: 1px 10px;
-    border: 1px solid #ccc;
-    border-radius: 999px;
-
-    &.manual-edit-panel__tool--active {
-      color: #fff;
-      background-color: #111;
-      border-color: #111;
-    }
-  }
-
-  .manual-edit-panel__button {
-    padding: 2px 10px;
-    font-size: 0.875rem;
-    border: 1px solid #999;
-    border-radius: 6px;
-
-    &:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
+    border: var(--hand-border);
   }
 }
 </style>

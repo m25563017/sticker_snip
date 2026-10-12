@@ -25,8 +25,7 @@ function handleSelect(value: PreviewBackdrop): void {
       <button
         type="button"
         role="radio"
-        class="backdrop-toggle__option"
-        :class="{ 'backdrop-toggle__option--active': option === props.modelValue }"
+        class="hand-button text-sm"
         :aria-checked="option === props.modelValue"
         @click="handleSelect(option)"
       >
@@ -42,27 +41,11 @@ function handleSelect(value: PreviewBackdrop): void {
   /* 標籤與選項都不折行，空間不夠時寧可整組換行，也不要把中文擠成一字一行 */
   white-space: nowrap;
 
-  .backdrop-toggle__option {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    font-size: 0.875rem;
-    border: 1px solid #ccc;
-    border-radius: 999px;
-
-    &.backdrop-toggle__option--active {
-      border-color: #111;
-      background-color: #111;
-      color: #fff;
-    }
-  }
-
   .backdrop-toggle__swatch {
     width: 12px;
     height: 12px;
+    border: 1px solid currentColor;
     border-radius: 50%;
-    border: 1px solid #999;
   }
 }
 </style>
