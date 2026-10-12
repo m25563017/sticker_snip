@@ -105,6 +105,14 @@ body {
     &[aria-checked='true'] {
       color: var(--color-paper);
       background-color: var(--color-ink);
+
+      /*
+       * 上面一般按鈕的 hover（淺灰底）權重比這裡高，不另外寫的話，
+       * 選中的按鈕滑過時會變成「淺灰底＋白字」而看不到字；這裡改成深灰底，維持白字
+       */
+      &:hover:not(:disabled) {
+        background-color: #333;
+      }
     }
 
     &:disabled {

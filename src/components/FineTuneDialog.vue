@@ -176,8 +176,8 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
           </div>
 
           <!-- ======== 原圖（只供對照、不可編輯）與去背結果 ======== -->
-          <div class="grid grid-cols-2 gap-4">
-            <figure class="flex flex-col gap-1">
+          <div class="fine-tune-dialog__compare">
+            <figure class="fine-tune-dialog__figure">
               <!--
                 原圖不接受任何點擊：所有會改變結果的操作都集中在右邊的去背結果上，
                 才都會記在同一份歷史紀錄裡，復原、重做都退得回來
@@ -192,6 +192,7 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
               </div>
             </figure>
             <ManualEditPanel
+              class="fine-tune-dialog__figure"
               :selection="props.selection"
               :preview="props.preview"
               v-model:view="view"
@@ -277,6 +278,24 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
     min-height: 0;
     overflow-y: auto;
     padding: 16px 20px 20px;
+  }
+
+  /*
+   * 原圖與結果並排比較：兩欄共用同一組列（標題、圖片、下方按鈕），
+   * 每個 figure 用 subgrid 套用這組列，哪一邊的標題換行，兩邊的圖片都會一起往下，永遠對齊
+   */
+  .fine-tune-dialog__compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 4px 16px;
+  }
+
+  .fine-tune-dialog__figure {
+    display: grid;
+    grid-row: span 3;
+    grid-template-rows: subgrid;
+    align-items: end;
   }
 
   .fine-tune-dialog__image {

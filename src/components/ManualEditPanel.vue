@@ -100,9 +100,9 @@ function handleRedo(): void {
 </script>
 
 <template>
-  <figure class="manual-edit-panel flex flex-col gap-1">
+  <figure class="manual-edit-panel">
     <!-- ======== 工具切換：魔術棒點一下去掉同色區塊；橡皮擦拖曳直接擦掉 ======== -->
-    <!-- 文字一律不折行（中文會被擠成一字一行）；空間不夠時讓筆刷滑桿整組換到下一行 -->
+    <!-- 文字一律不折行（中文會被擠成一字一行），空間不夠時整個按鈕換行 -->
     <figcaption class="flex flex-wrap items-center gap-2 text-sm whitespace-nowrap">
       <span class="opacity-70">{{ t('manualEdit.result') }}</span>
       <template v-for="tool in TOOLS" :key="tool.value">
@@ -115,20 +115,6 @@ function handleRedo(): void {
         >
           <AppIcon :name="tool.icon" />{{ t(`manualEdit.tools.${tool.value}.label`) }}
         </button>
-      </template>
-      <template v-if="activeTool !== 'wand'">
-        <label class="flex items-center gap-1 ml-auto">
-          <span class="opacity-70">{{ t('manualEdit.brush') }}</span>
-          <input
-            type="range"
-            :min="BRUSH_SIZE_MIN"
-            :max="brushSizeMax"
-            step="1"
-            :value="brushSize"
-            @input="handleBrushSizeInput"
-          />
-          <span class="w-12 text-right">{{ brushSize }} px</span>
-        </label>
       </template>
     </figcaption>
 
@@ -149,8 +135,9 @@ function handleRedo(): void {
       </template>
     </div>
 
-    <!-- ======== 復原／重做：魔術棒、橡皮擦共用同一份歷史紀錄 ======== -->
-    <div class="flex items-center gap-2">
+    <!-- ======== 復原／重做（所有工具共用同一份歷史紀錄）＋ 筆刷大小 ======== -->
+    <!-- 筆刷滑桿放這裡而不是標題列：標題列才不會因為切換工具忽高忽低 -->
+    <div class="flex flex-wrap items-center gap-2 text-sm">
       <button
         type="button"
         class="hand-button text-sm"
@@ -169,6 +156,20 @@ function handleRedo(): void {
       >
         <AppIcon name="redo" />{{ t('manualEdit.redo') }}
       </button>
+      <template v-if="activeTool !== 'wand'">
+        <label class="flex items-center gap-1 ml-auto">
+          <span class="opacity-70">{{ t('manualEdit.brush') }}</span>
+          <input
+            type="range"
+            :min="BRUSH_SIZE_MIN"
+            :max="brushSizeMax"
+            step="1"
+            :value="brushSize"
+            @input="handleBrushSizeInput"
+          />
+          <span class="w-12 text-right">{{ brushSize }} px</span>
+        </label>
+      </template>
     </div>
   </figure>
 </template>
