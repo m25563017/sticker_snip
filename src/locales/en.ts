@@ -12,6 +12,7 @@ export default {
     color: 'Color',
     delete: 'Delete',
     transparent: 'Transparent',
+    fitView: 'Fit to view',
   },
   locale: {
     label: 'Language',
@@ -114,7 +115,7 @@ export default {
   fineTune: {
     title: 'Fine-tune #{number}',
     zoomHint: 'Scroll to zoom, hold Space and drag to pan',
-    fitView: 'Fit to view',
+    zoomHintTouch: 'Pinch to zoom, drag with two fingers to pan',
     close: 'Close',
     original: 'Original (reference only)',
     backgroundColor: 'Bg color',

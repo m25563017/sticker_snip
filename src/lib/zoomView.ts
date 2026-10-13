@@ -38,6 +38,22 @@ export function zoomAt(view: ZoomView, anchor: Point, factor: number, size: View
   )
 }
 
+/**
+ * 兩指手勢的一步：兩指距離變了多少倍就縮放多少倍，兩指中點移動多少就平移多少。
+ * 先以「移動前的中點」為中心縮放（手指中間那一點停在原地），再跟著中點平移，
+ * 效果就像用兩根手指捏住一張照片拉大、拖動。
+ */
+export function pinchView(view: ZoomView, before: [Point, Point], after: [Point, Point], size: ViewportSize): ZoomView {
+  const middle = ([a, b]: [Point, Point]): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 })
+  const distance = ([a, b]: [Point, Point]): number => Math.hypot(a.x - b.x, a.y - b.y)
+  const from = middle(before)
+  const to = middle(after)
+  const startDistance = distance(before)
+  // 兩指疊在同一點時算不出倍數，只平移
+  const zoomed = startDistance === 0 ? view : zoomAt(view, from, distance(after) / startDistance, size)
+  return panBy(zoomed, to.x - from.x, to.y - from.y, size)
+}
+
 export function panBy(view: ZoomView, dx: number, dy: number, size: ViewportSize): ZoomView {
   return clampOffset({ scale: view.scale, x: view.x + dx, y: view.y + dy }, size)
 }

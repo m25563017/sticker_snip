@@ -1,6 +1,6 @@
 import { computed, ref, type Ref } from 'vue'
 import { useEditorStore } from '@/stores/editor'
-import { boundsToDisplay, clampPoint, displayToSource, sourceToDisplay } from '@/lib/coordinates'
+import { boundsToDisplay, clampPoint, displayToSource, sourceToDisplay, type ViewTransform } from '@/lib/coordinates'
 import { HANDLE_SIZE } from '@/lib/overlayRenderer'
 import { isRectTooSmall, rectFromPoints } from '@/lib/rect'
 import { HANDLE_CURSORS, hitTestHandle, resizeBounds, type ResizeHandle } from '@/lib/resizeHandles'
@@ -38,8 +38,8 @@ export type CanvasInteraction =
 
 interface Options {
   overlayRef: Ref<HTMLCanvasElement | null>
-  /** 顯示尺寸 / 原圖尺寸 */
-  displayScale: Ref<number>
+  /** 原圖 → 畫面的換算（含縮放與平移） */
+  transform: Ref<ViewTransform>
   /** 拖曳中畫面需要更新時呼叫（畫出拖曳中的框、移動中的控制點） */
   onChange: () => void
 }
@@ -48,13 +48,13 @@ interface Options {
  * 主畫布的滑鼠互動：畫新範圍、點選、拖曳控制點調整大小、右鍵刪除／取消。
  * 只處理「滑鼠做了什麼」，畫面怎麼畫交給 EditorCanvas。
  */
-export function useCanvasInteraction({ overlayRef, displayScale, onChange }: Options) {
+export function useCanvasInteraction({ overlayRef, transform, onChange }: Options) {
   const editorStore = useEditorStore()
   const interaction = ref<CanvasInteraction | null>(null)
   /** 沒在拖曳時，依游標是否在控制點上切換樣式 */
   const hoverCursor = ref('crosshair')
 
-  const minSourceSize = computed(() => MIN_DRAG_DISPLAY_SIZE / displayScale.value)
+  const minSourceSize = computed(() => MIN_DRAG_DISPLAY_SIZE / transform.value.scale)
 
   const activeSelection = computed(() =>
     editorStore.selections.find((item) => item.id === editorStore.activeSelectionId),
@@ -92,14 +92,14 @@ export function useCanvasInteraction({ overlayRef, displayScale, onChange }: Opt
 
     const rect = overlay.getBoundingClientRect()
     const displayPoint = { x: event.clientX - rect.left, y: event.clientY - rect.top }
-    return clampPoint(displayToSource(displayPoint, displayScale.value), bitmap.width, bitmap.height)
+    return clampPoint(displayToSource(displayPoint, transform.value), bitmap.width, bitmap.height)
   }
 
   /** 游標是否在目前選取範圍的某個控制點上（在畫面座標比對，點擊的手感才不受縮放影響） */
   function handleAt(sourcePoint: Point): ResizeHandle | null {
     if (!activeResizable.value) return null
-    const displayPoint = sourceToDisplay(sourcePoint, displayScale.value)
-    const displayBounds = boundsToDisplay(activeResizable.value.bounds, displayScale.value)
+    const displayPoint = sourceToDisplay(sourcePoint, transform.value)
+    const displayBounds = boundsToDisplay(activeResizable.value.bounds, transform.value)
     return hitTestHandle(displayBounds, displayPoint, HANDLE_HIT_TOLERANCE)
   }
 
@@ -151,7 +151,7 @@ export function useCanvasInteraction({ overlayRef, displayScale, onChange }: Opt
       active.current = point
     } else if (active.kind === 'lasso') {
       const last = active.points[active.points.length - 1]
-      const movedOnScreen = Math.hypot(point.x - last.x, point.y - last.y) * displayScale.value
+      const movedOnScreen = Math.hypot(point.x - last.x, point.y - last.y) * transform.value.scale
       if (movedOnScreen >= LASSO_POINT_SPACING) active.points.push(point)
     } else if (active.kind === 'move') {
       const target = editorStore.selections.find((item) => item.id === active.id)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FIT_VIEW, MAX_ZOOM, panBy, zoomAt } from './zoomView'
+import { FIT_VIEW, MAX_ZOOM, panBy, pinchView, zoomAt } from './zoomView'
 
 const SIZE = { width: 100, height: 100 }
 
@@ -37,5 +37,28 @@ describe('panBy', () => {
 
   it('1 倍時拖不動', () => {
     expect(panBy(FIT_VIEW, 30, 30, SIZE)).toEqual(FIT_VIEW)
+  })
+})
+
+describe('pinchView', () => {
+  it('兩指張開一倍：以兩指中點為中心放大 2 倍', () => {
+    const view = pinchView(FIT_VIEW, [{ x: 40, y: 50 }, { x: 60, y: 50 }], [{ x: 30, y: 50 }, { x: 70, y: 50 }], SIZE)
+
+    // 中點 (50, 50) 縮放前後停在原地
+    expect(view).toEqual({ scale: 2, x: -50, y: -50 })
+  })
+
+  it('兩指距離不變、一起移動：只平移', () => {
+    const zoomed = { scale: 2, x: -50, y: -50 }
+
+    const view = pinchView(zoomed, [{ x: 40, y: 50 }, { x: 60, y: 50 }], [{ x: 50, y: 40 }, { x: 70, y: 40 }], SIZE)
+
+    expect(view).toEqual({ scale: 2, x: -40, y: -60 })
+  })
+
+  it('兩指疊在同一點時不會算出無限大，只平移', () => {
+    const view = pinchView({ scale: 2, x: -50, y: -50 }, [{ x: 50, y: 50 }, { x: 50, y: 50 }], [{ x: 60, y: 50 }, { x: 60, y: 50 }], SIZE)
+
+    expect(view).toEqual({ scale: 2, x: -40, y: -50 })
   })
 })

@@ -11,6 +11,7 @@ export default {
     color: '顏色',
     delete: '刪除',
     transparent: '透明',
+    fitView: '適應視窗',
   },
   locale: {
     label: '語言',
@@ -110,7 +111,7 @@ export default {
   fineTune: {
     title: '#{number} 微調',
     zoomHint: '滾輪縮放、按住空白鍵拖曳平移',
-    fitView: '適應視窗',
+    zoomHintTouch: '兩指捏合縮放、兩指拖曳平移',
     close: '關閉',
     original: '原圖（去背前，僅供對照）',
     backgroundColor: '背景色',

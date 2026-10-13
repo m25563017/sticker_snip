@@ -1,29 +1,48 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@/stores/editor'
 import { useCanvasInteraction } from '@/composables/useCanvasInteraction'
-import { computeContainSize } from '@/lib/canvas'
-import { boundsToDisplay, sourceToDisplay } from '@/lib/coordinates'
+import { useZoomControls } from '@/composables/useZoomControls'
+import { boundsToDisplay, composeViewTransform, sourceToDisplay, type ViewTransform } from '@/lib/coordinates'
 import { drawOverlay, type OverlayFrame } from '@/lib/overlayRenderer'
 import { rectFromPoints } from '@/lib/rect'
 import { pointsBounds, selectionBounds } from '@/lib/selectionShape'
+import { FIT_VIEW, type ZoomView } from '@/lib/zoomView'
 import type { Bounds, Point, Selection } from '@/types/selection'
+import AppIcon from '@/components/AppIcon.vue'
 
 /** 圖片四周預留的空間（px），放得下外框和錯位陰影，不會被容器裁掉 */
 const FRAME_MARGIN = 10
+/** 圖片的手繪外框：線寬與錯位陰影的距離（px），和其他面板一致 */
+const FRAME_LINE_WIDTH = 2
+const FRAME_SHADOW_OFFSET = 6
 
+const { t } = useI18n()
 const editorStore = useEditorStore()
 const containerRef = ref<HTMLDivElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 /** 疊在底圖上的透明畫布，只畫框線與編號，重畫它不必重畫整張底圖 */
 const overlayRef = ref<HTMLCanvasElement | null>(null)
 
+// ======== 縮放 ========
 /**
- * 目前的顯示縮放比例（顯示尺寸 / 原圖尺寸）。
- * 這是「畫面怎麼呈現」的資訊，不是編輯資料，所以留在元件裡而不放進 store；
+ * 使用者的縮放視角（1 倍 = 整張圖塞進畫面）。
+ * 這是「畫面怎麼呈現」的資訊，不是編輯資料，所以留在元件裡而不放進 store。
+ */
+const view = ref<ZoomView>(FIT_VIEW)
+const { isSpaceHeld, isPanning } = useZoomControls(containerRef, view)
+const zoomPercent = computed(() => Math.round(view.value.scale * 100))
+
+function handleFitView(): void {
+  view.value = FIT_VIEW
+}
+
+/**
+ * 原圖 → 畫面的換算（適應視窗的擺放 + 縮放視角）。
  * 滑鼠互動要靠它把游標位置換算成原圖座標（見 useCanvasInteraction）。
  */
-const displayScale = ref(0)
+const transform = ref<ViewTransform>({ scale: 0, offsetX: 0, offsetY: 0 })
 
 /** 滑鼠互動（畫框、點選、調整大小、右鍵）在 composable 裡，這個元件只負責把畫面畫出來 */
 const {
@@ -36,15 +55,35 @@ const {
   handlePointerUp,
   handlePointerCancel,
   handleContextMenu,
-} = useCanvasInteraction({ overlayRef, displayScale, onChange: redrawOverlay })
+} = useCanvasInteraction({ overlayRef, transform, onChange: redrawOverlay })
+
+/** 按住空白鍵時，不論游標在哪裡都顯示成手掌 */
+const displayedCursor = computed(() => (isPanning.value ? 'grabbing' : isSpaceHeld.value ? 'grab' : cursor.value))
 
 let resizeObserver: ResizeObserver | null = null
 
 /**
- * 重畫顯示用的畫布：把底圖依容器大小等比縮放後畫上去。
- * canvas 的實際像素尺寸（width/height 屬性）就設成縮放後的顯示尺寸，
- * 而不是用 CSS 硬壓，這樣之後處理滑鼠事件時，事件座標可以直接對應到
- * canvas 像素，不用再另外換算 devicePixelRatio。
+ * 讓 canvas 跟外框一樣大，並以螢幕實際像素為單位（× devicePixelRatio），高解析度螢幕上才不會糊。
+ * 之後的繪圖都先 setTransform 換回 CSS px，程式裡的座標就不必考慮螢幕密度。
+ */
+function prepareCanvas(canvas: HTMLCanvasElement, width: number, height: number): CanvasRenderingContext2D | null {
+  const ratio = window.devicePixelRatio || 1
+  const pixelWidth = Math.round(width * ratio)
+  const pixelHeight = Math.round(height * ratio)
+  // 設定 width／height 會清空畫布，大小沒變時不必重設
+  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+    canvas.width = pixelWidth
+    canvas.height = pixelHeight
+  }
+  const ctx = canvas.getContext('2d')
+  ctx?.setTransform(ratio, 0, 0, ratio, 0, 0)
+  return ctx
+}
+
+/**
+ * 重畫底圖：依目前的縮放視角，把看得到的那一塊直接用原圖畫出來。
+ * 不是把縮小後的圖再用 CSS 放大，所以放大到 8 倍也一樣清楚（像用放大鏡看原稿，而不是放大影印本）。
+ * 圖片的手繪黑框與錯位陰影也畫在 canvas 上，才會跟著縮放、平移。
  */
 function redraw(): void {
   const canvas = canvasRef.value
@@ -53,31 +92,35 @@ function redraw(): void {
   const bitmap = editorStore.sourceBitmap
   if (!canvas || !overlay || !container || !bitmap) return
 
-  const { width, height, scale } = computeContainSize(
-    bitmap.width,
-    bitmap.height,
-    container.clientWidth - FRAME_MARGIN * 2,
-    container.clientHeight - FRAME_MARGIN * 2,
-  )
+  const width = container.clientWidth
+  const height = container.clientHeight
   if (width === 0 || height === 0) return
+  transform.value = composeViewTransform(bitmap.width, bitmap.height, width, height, FRAME_MARGIN, view.value)
 
-  displayScale.value = scale
-  canvas.width = width
-  canvas.height = height
-  // overlay 必須跟底圖一樣大，框線才會疊在正確的位置
-  overlay.width = width
-  overlay.height = height
-
-  const ctx = canvas.getContext('2d')
+  const ctx = prepareCanvas(canvas, width, height)
+  prepareCanvas(overlay, width, height)
   if (!ctx) return
+
+  const { scale, offsetX, offsetY } = transform.value
+  const imageWidth = bitmap.width * scale
+  const imageHeight = bitmap.height * scale
+  const ink = getComputedStyle(container).getPropertyValue('--color-ink')
+
   ctx.clearRect(0, 0, width, height)
-  ctx.drawImage(bitmap, 0, 0, width, height)
+  ctx.fillStyle = ink
+  ctx.fillRect(offsetX + FRAME_SHADOW_OFFSET, offsetY + FRAME_SHADOW_OFFSET, imageWidth, imageHeight)
+  // 放大檢視時像素以方格清楚呈現（和微調彈窗一致），看得出框到底有沒有貼齊邊緣
+  ctx.imageSmoothingEnabled = view.value.scale <= 1
+  ctx.drawImage(bitmap, offsetX, offsetY, imageWidth, imageHeight)
+  ctx.lineWidth = FRAME_LINE_WIDTH
+  ctx.strokeStyle = ink
+  ctx.strokeRect(offsetX - FRAME_LINE_WIDTH / 2, offsetY - FRAME_LINE_WIDTH / 2, imageWidth + FRAME_LINE_WIDTH, imageHeight + FRAME_LINE_WIDTH)
 
   redrawOverlay()
 }
 
-const toDisplayBounds = (bounds: Bounds) => boundsToDisplay(bounds, displayScale.value)
-const toDisplayPoints = (points: Point[]) => points.map((point) => sourceToDisplay(point, displayScale.value))
+const toDisplayBounds = (bounds: Bounds) => boundsToDisplay(bounds, transform.value)
+const toDisplayPoints = (points: Point[]) => points.map((point) => sourceToDisplay(point, transform.value))
 
 function toFrame(stored: Selection, index: number): OverlayFrame {
   // 拖曳中（移動、調整大小）的範圍顯示暫存的位置與大小
@@ -114,7 +157,7 @@ function redrawOverlay(): void {
 
 onMounted(() => {
   redraw()
-  // 容器大小改變（例如視窗縮放）時要重新計算縮放比例並重畫，
+  // 容器大小改變（例如視窗縮放）時要重新計算換算方式並重畫，
   // 否則選取框之後會跟畫面對不上
   resizeObserver = new ResizeObserver(() => redraw())
   if (containerRef.value) resizeObserver.observe(containerRef.value)
@@ -124,41 +167,61 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
 })
 
-watch(() => editorStore.sourceBitmap, redraw)
+// 換新圖時回到整張顯示，舊圖的放大位置對新圖沒有意義
+watch(
+  () => editorStore.sourceBitmap,
+  () => {
+    view.value = FIT_VIEW
+    redraw()
+  },
+)
+watch(view, redraw)
 // deep：範圍內部欄位（例如 bounds）被修改時也要重畫，不只是新增／刪除
 watch(() => [editorStore.selections, editorStore.activeSelectionId], redrawOverlay, { deep: true })
 </script>
 
 <template>
-  <div ref="containerRef" class="editor-canvas flex items-center justify-center h-full w-full overflow-hidden">
+  <!-- 縮放、平移的操作掛在外框上，底圖與疊層都跟著同一份視角重畫 -->
+  <div ref="containerRef" class="editor-canvas relative h-full w-full overflow-hidden">
     <!-- ======== 底圖 + 框選疊層 ======== -->
-    <div class="editor-canvas__stage relative">
-      <canvas ref="canvasRef" class="block"></canvas>
-      <canvas
-        ref="overlayRef"
-        class="editor-canvas__overlay absolute inset-0"
-        :style="{ cursor }"
-        @pointerdown="handlePointerDown"
-        @pointermove="handlePointerMove"
-        @pointerup="handlePointerUp"
-        @pointercancel="handlePointerCancel"
-        @contextmenu.prevent="handleContextMenu"
-      ></canvas>
-    </div>
+    <canvas ref="canvasRef" class="editor-canvas__layer"></canvas>
+    <canvas
+      ref="overlayRef"
+      class="editor-canvas__layer editor-canvas__overlay"
+      :style="{ cursor: displayedCursor }"
+      @pointerdown="handlePointerDown"
+      @pointermove="handlePointerMove"
+      @pointerup="handlePointerUp"
+      @pointercancel="handlePointerCancel"
+      @contextmenu.prevent="handleContextMenu"
+    ></canvas>
+
+    <!-- ======== 放大時才出現：顯示倍率，點了回到整張 ======== -->
+    <template v-if="view.scale > 1">
+      <button type="button" class="editor-canvas__fit hand-button text-sm" :title="t('common.fitView')" @click="handleFitView">
+        <AppIcon name="fit" />{{ zoomPercent }}%
+      </button>
+    </template>
   </div>
 </template>
 
 <style scoped>
 .editor-canvas {
-  /* 用 outline 而不是 border：outline 不佔版面，畫布尺寸和座標換算都不受影響 */
-  .editor-canvas__stage {
-    outline: 2px solid var(--color-ink);
-    box-shadow: 6px 6px 0 var(--color-ink);
+  /* 觸控手勢（拖曳框選、兩指縮放）全部自己處理，不讓瀏覽器當成捲動或整頁放大 */
+  touch-action: none;
+
+  /* 兩層 canvas 疊在一起、跟外框一樣大；不參與排版，外框大小只由版面決定 */
+  .editor-canvas__layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
   }
 
-  .editor-canvas__overlay {
-    /* 觸控裝置上拖曳時，不讓瀏覽器把手勢當成捲動頁面 */
-    touch-action: none;
+  .editor-canvas__fit {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
   }
 }
 </style>

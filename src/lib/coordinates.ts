@@ -1,29 +1,64 @@
 import type { Bounds, Point } from '@/types/selection'
 import { computeContainSize } from './canvas'
+import type { ZoomView } from './zoomView'
 
 /**
  * 畫面座標 ↔ 原圖座標互轉。
  *
- * EditorCanvas 把原圖等比縮放後顯示，scale = 顯示尺寸 / 原圖尺寸
- * （由 computeContainSize 算出）。選取資料一律存「原圖座標」，
- * 視窗縮放時只需重算 scale，已存的範圍不用跟著改；
+ * EditorCanvas 把原圖等比縮放、置中後顯示，使用者還可以再放大、平移。
+ * 選取資料一律存「原圖座標」，視窗大小或縮放改變時只需重算換算方式，已存的範圍不用跟著改；
  * 要畫到畫面上時才轉回顯示座標。
  */
 
+/** 原圖 → 畫面的換算：畫面座標 = 原圖座標 × scale + offset */
+export interface ViewTransform {
+  /** 顯示尺寸 / 原圖尺寸 */
+  scale: number
+  /** 原圖左上角在畫面上的位置 */
+  offsetX: number
+  offsetY: number
+}
+
+/**
+ * 「適應視窗」的擺放（等比塞進外框、置中）再疊上使用者的縮放視角，得到原圖 → 畫面的換算。
+ * 縮放視角以外框左上角為原點，和微調彈窗的 ZoomView 定義相同，可以共用 zoomAt、panBy。
+ *
+ * @param margin 外框四周預留的空白（放得下圖片的黑框與錯位陰影）
+ */
+export function composeViewTransform(
+  imageWidth: number,
+  imageHeight: number,
+  boxWidth: number,
+  boxHeight: number,
+  margin: number,
+  view: ZoomView,
+): ViewTransform {
+  const { scale: fitScale } = computeContainSize(imageWidth, imageHeight, boxWidth - margin * 2, boxHeight - margin * 2)
+  // 用未四捨五入的實際顯示尺寸計算置中位置，避免換算出的座標有半像素偏移
+  const fitX = (boxWidth - imageWidth * fitScale) / 2
+  const fitY = (boxHeight - imageHeight * fitScale) / 2
+  return {
+    scale: fitScale * view.scale,
+    offsetX: view.x + fitX * view.scale,
+    offsetY: view.y + fitY * view.scale,
+  }
+}
+
 /** 滑鼠在畫面上的位置 → 原圖上的位置 */
-export function displayToSource(point: Point, scale: number): Point {
-  if (scale <= 0) return { x: 0, y: 0 }
-  return { x: point.x / scale, y: point.y / scale }
+export function displayToSource(point: Point, transform: ViewTransform): Point {
+  if (transform.scale <= 0) return { x: 0, y: 0 }
+  return { x: (point.x - transform.offsetX) / transform.scale, y: (point.y - transform.offsetY) / transform.scale }
 }
 
 /** 原圖上的位置 → 畫面上要畫的位置 */
-export function sourceToDisplay(point: Point, scale: number): Point {
-  return { x: point.x * scale, y: point.y * scale }
+export function sourceToDisplay(point: Point, transform: ViewTransform): Point {
+  return { x: point.x * transform.scale + transform.offsetX, y: point.y * transform.scale + transform.offsetY }
 }
 
 /** 原圖上的外框 → 畫面上的外框 */
-export function boundsToDisplay(bounds: Bounds, scale: number): Bounds {
-  return { x: bounds.x * scale, y: bounds.y * scale, width: bounds.width * scale, height: bounds.height * scale }
+export function boundsToDisplay(bounds: Bounds, transform: ViewTransform): Bounds {
+  const { x, y } = sourceToDisplay(bounds, transform)
+  return { x, y, width: bounds.width * transform.scale, height: bounds.height * transform.scale }
 }
 
 /**
