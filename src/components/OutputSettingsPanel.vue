@@ -80,7 +80,7 @@ function handleEdgeQualityChange(event: Event): void {
   <aside class="output-settings-panel hand-panel flex flex-col min-h-0" :aria-label="t('outputSettings.title')">
     <header class="output-settings-panel__title hand-panel-title">
       <h2>{{ t('outputSettings.title') }}</h2>
-      <button type="button" class="output-settings-panel__close md:hidden" :aria-label="t('fineTune.close')" @click="handleClose">
+      <button type="button" class="output-settings-panel__close md:hidden" :aria-label="t('common.close')" @click="handleClose">
         <AppIcon name="close" :size="18" />
       </button>
     </header>

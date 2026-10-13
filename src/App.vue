@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useNotify } from '@pieda/core'
 import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@/stores/editor'
@@ -7,6 +7,8 @@ import ImageDropzone from '@/components/ImageDropzone.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import LocaleToggle from '@/components/LocaleToggle.vue'
 import HandDrawnFilter from '@/components/HandDrawnFilter.vue'
+import HelpDialog from '@/components/HelpDialog.vue'
+import { useHelpDialog } from '@/composables/useHelpDialog'
 import EditorCanvas from '@/components/EditorCanvas.vue'
 import ThumbnailList from '@/components/ThumbnailList.vue'
 import ReviewGrid from '@/components/ReviewGrid.vue'
@@ -26,6 +28,13 @@ const { isExporting, exportedCount, exportStickers } = useExport()
 const { previews } = useSelectionPreviews()
 /** 手機版：輸出設定收在底部面板，按鈕在操作列 */
 const outputSettingsSheet = useOutputSettingsSheet()
+/** 使用說明：第一次打開網站時自動顯示教學，之後從頂列的 ? 打開 */
+const help = useHelpDialog()
+onMounted(help.openGuideOnFirstVisit)
+
+function handleOpenHelp(): void {
+  help.open('guide')
+}
 
 /** 只有一張時直接下載 PNG，按鈕文字跟著說清楚會拿到什麼 */
 const exportLabel = computed(() => {
@@ -70,7 +79,12 @@ async function handleReupload(): Promise<void> {
     <!-- ======== 頂列：標題、語言 ======== -->
     <header class="app-shell__title flex items-center justify-between gap-4 px-4 py-3">
       <h1 class="text-xl">{{ t('app.title') }}</h1>
-      <LocaleToggle />
+      <div class="flex items-center gap-2">
+        <button type="button" class="hand-button app-shell__help" :aria-label="t('help.button')" :title="t('help.button')" @click="handleOpenHelp">
+          <AppIcon name="help" />
+        </button>
+        <LocaleToggle />
+      </div>
     </header>
 
     <!-- ======== 操作按鈕：依階段切換 ======== -->
@@ -133,6 +147,10 @@ async function handleReupload(): Promise<void> {
       </template>
     </section>
 
+    <template v-if="help.isOpen.value">
+      <HelpDialog />
+    </template>
+
     <!-- 圖示的手繪抖動濾鏡，全站共用一份 -->
     <HandDrawnFilter />
   </main>
@@ -146,14 +164,18 @@ async function handleReupload(): Promise<void> {
   grid-template-areas:
     'title actions'
     'workspace workspace';
-  /* 四周留出桌面，右下多留一點給陰影 */
-  height: calc(100% - 28px);
-  margin: 10px 18px 18px 10px;
+  /* 四周的桌面留白在 #app 的 padding（見 style.css） */
+  height: 100%;
   box-shadow: 6px 6px 0 var(--color-ink);
 
   .app-shell__title {
     grid-area: title;
     border-bottom: 3px solid var(--color-ink);
+  }
+
+  /* 只有圖示的按鈕：左右內距縮小，跟語言切換一樣高 */
+  .app-shell__help {
+    padding: 2px 6px;
   }
 
   .app-shell__actions {
@@ -176,8 +198,6 @@ async function handleReupload(): Promise<void> {
       'title'
       'workspace'
       'actions';
-    height: 100%;
-    margin: 0;
     border: none;
     box-shadow: none;
 

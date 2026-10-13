@@ -12,6 +12,7 @@ export default {
     delete: '刪除',
     transparent: '透明',
     fitView: '適應視窗',
+    close: '關閉',
   },
   locale: {
     label: '語言',
@@ -35,6 +36,8 @@ export default {
     drop: '拖曳合成圖到這裡',
     browse: '或點擊選擇檔案',
     tagline: '一張合成圖、多張貼紙、單一底色',
+    copyrightNotice: '請只處理你有權使用的圖片。',
+    copyrightLink: '了解素材版權',
     invalidType: {
       title: '檔案格式錯誤',
       message: '請上傳圖片檔案（PNG、JPG 等），目前選到的不是圖片。',
@@ -114,7 +117,6 @@ export default {
     title: '#{number} 微調',
     zoomHint: '滾輪縮放、按住空白鍵拖曳平移',
     zoomHintTouch: '兩指捏合縮放、兩指拖曳平移',
-    close: '關閉',
     original: '原圖（去背前，僅供對照）',
     panes: {
       original: '原圖',
@@ -136,6 +138,58 @@ export default {
     brush: '筆刷',
     undo: '復原',
     redo: '重做',
+  },
+  help: {
+    button: '使用說明',
+    title: '使用說明',
+    tabs: {
+      guide: '怎麼使用',
+      about: '關於',
+    },
+    steps: {
+      upload: {
+        title: '上傳合成圖',
+        body: '把含有多張貼紙的圖片拖進來，或點擊選擇檔案。工具會自動找出每一張貼紙，圖片只在你的瀏覽器裡處理，不會上傳。',
+      },
+      select: {
+        title: '檢查框選範圍',
+        body: '點框可以選取，拖曳控制點調整大小、拖曳框可以移動。漏掉的用矩形、橢圓、套索補畫，不要的按框旁的「刪除」。滾輪縮放、按住空白鍵拖曳平移。',
+        bodyTouch: '點框可以選取，拖曳控制點調整大小、拖曳框可以移動。漏掉的用矩形、橢圓、套索補畫，不要的按框旁的「刪除」。兩指捏合縮放、兩指拖曳平移。',
+      },
+      review: {
+        title: '預覽與微調',
+        body: '按「預覽結果」看每一張去背後的樣子。沒去乾淨的點一下進入微調：魔術棒去掉同色區塊、橡皮擦擦掉殘留、保留筆刷救回被誤刪的地方。',
+      },
+      export: {
+        title: '設定並下載',
+        body: '在右側的輸出設定調整尺寸、邊距、白邊、陰影，按「下載」取得 PNG 或 zip。',
+        bodyTouch: '點下方的「輸出設定」調整尺寸、邊距、白邊、陰影，按「下載」取得 PNG 或 zip。',
+      },
+    },
+    stepOf: '第 {current} 步，共 {total} 步',
+    skip: '略過',
+    previous: '上一步',
+    next: '下一步',
+    start: '開始使用',
+    about: {
+      privacy: {
+        title: '隱私',
+        body: '你的圖片不會上傳到任何地方，所有處理都在你的瀏覽器裡完成，網站也禁止發出任何網路請求。瀏覽器只會記住你的偏好設定（語言、預覽背景、輸出設定），不包含圖片。',
+      },
+      copyright: {
+        title: '素材版權',
+        body: '請只處理你有權使用的圖片。從 Canva 等素材平台取得的圖片通常有授權限制，例如不得單獨轉售、再散布，或做成貼圖、商品販售。使用前請確認原平台的授權條款，因素材使用產生的責任由使用者自行負擔。',
+      },
+      disclaimer: {
+        title: '免責聲明',
+        body: '本工具依現況免費提供，不保證處理結果完全正確，下載前請自行檢查。因使用本工具產生的任何直接或間接損失，作者不負任何責任。',
+      },
+      licenses: {
+        title: '授權',
+        body: '手寫字型 Patrick Hand 與 jf open 粉圓採用 SIL Open Font License 1.1，圖示來自 Lucide（ISC License）。',
+        link: '查看授權全文',
+      },
+    },
   },
   export: {
     empty: {

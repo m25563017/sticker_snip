@@ -85,6 +85,11 @@ const ICONS = {
     path('M8 10v4'),
     path('M16 18v4'),
   ],
+  help: [
+    { tag: 'circle', cx: 12, cy: 12, r: 10 },
+    path('M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3'),
+    path('M12 17h.01'),
+  ],
   close: [path('M18 6 6 18'), path('m6 6 12 12')],
   arrowLeft: [path('m12 19-7-7 7-7'), path('M19 12H5')],
   arrowRight: [path('M5 12h14'), path('m12 5 7 7-7 7')],

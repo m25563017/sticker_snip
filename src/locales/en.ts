@@ -13,6 +13,7 @@ export default {
     delete: 'Delete',
     transparent: 'Transparent',
     fitView: 'Fit to view',
+    close: 'Close',
   },
   locale: {
     label: 'Language',
@@ -36,6 +37,8 @@ export default {
     drop: 'Drop your sticker sheet here',
     browse: 'or click to choose a file',
     tagline: 'One image, many stickers, one flat background color',
+    copyrightNotice: 'Only process images you have the right to use.',
+    copyrightLink: 'About copyright',
     invalidType: {
       title: 'Unsupported file',
       message: 'Please upload an image file (PNG, JPG, etc.). The selected file is not an image.',
@@ -118,7 +121,6 @@ export default {
     title: 'Fine-tune #{number}',
     zoomHint: 'Scroll to zoom, hold Space and drag to pan',
     zoomHintTouch: 'Pinch to zoom, drag with two fingers to pan',
-    close: 'Close',
     original: 'Original (reference only)',
     panes: {
       original: 'Original',
@@ -140,6 +142,58 @@ export default {
     brush: 'Brush',
     undo: 'Undo',
     redo: 'Redo',
+  },
+  help: {
+    button: 'Help',
+    title: 'Help',
+    tabs: {
+      guide: 'How to use',
+      about: 'About',
+    },
+    steps: {
+      upload: {
+        title: 'Upload a sticker sheet',
+        body: 'Drop an image with several stickers, or click to choose a file. Each sticker is detected automatically. Your image is processed in your browser and never uploaded.',
+      },
+      select: {
+        title: 'Check the boxes',
+        body: 'Click a box to select it, drag its handles to resize, or drag it to move. Add missing ones with the rectangle, ellipse or lasso, and press Delete next to a box to remove it. Scroll to zoom, hold Space and drag to pan.',
+        bodyTouch: 'Tap a box to select it, drag its handles to resize, or drag it to move. Add missing ones with the rectangle, ellipse or lasso, and press Delete next to a box to remove it. Pinch to zoom, drag with two fingers to pan.',
+      },
+      review: {
+        title: 'Preview and fine-tune',
+        body: 'Press Preview to see each cutout. Click one that needs fixing: the magic wand removes same-colored areas, the eraser wipes leftovers, and Restore brings back parts removed by mistake.',
+      },
+      export: {
+        title: 'Set up and download',
+        body: 'Adjust size, padding, border and shadow in the settings on the right, then press Download to get PNGs or a zip.',
+        bodyTouch: 'Tap Settings at the bottom to adjust size, padding, border and shadow, then press Download to get PNGs or a zip.',
+      },
+    },
+    stepOf: 'Step {current} of {total}',
+    skip: 'Skip',
+    previous: 'Back',
+    next: 'Next',
+    start: 'Get started',
+    about: {
+      privacy: {
+        title: 'Privacy',
+        body: 'Your images are never uploaded. Everything is processed in your browser, and the site is blocked from making any network requests. Only your preferences (language, preview background, output settings) are saved in your browser, never your images.',
+      },
+      copyright: {
+        title: 'Copyright',
+        body: 'Only process images you have the right to use. Assets from platforms such as Canva usually come with license restrictions: for example, they may not be resold or redistributed on their own, or sold as stickers or merchandise. Check the original license before use. You are responsible for how you use the assets.',
+      },
+      disclaimer: {
+        title: 'Disclaimer',
+        body: 'This tool is provided free and as is, with no guarantee that the results are correct. Please check them before use. The author is not liable for any direct or indirect loss arising from the use of this tool.',
+      },
+      licenses: {
+        title: 'Licenses',
+        body: 'The handwriting fonts Patrick Hand and jf open huninn are licensed under the SIL Open Font License 1.1. Icons are from Lucide (ISC License).',
+        link: 'View full licenses',
+      },
+    },
   },
   export: {
     empty: {

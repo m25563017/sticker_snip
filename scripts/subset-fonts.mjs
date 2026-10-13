@@ -7,6 +7,7 @@
  * 使用方式：翻譯檔改了文字之後執行 `npm run fonts`，再把產生的 woff2 一起 commit。
  * 原始字型檔會下載到 .font-cache/（不 commit），只有第一次執行需要網路。
  * 字型授權檔放在 public/licenses/，會跟著網站一起發佈（OFL 要求散布字型時附上授權）。
+ * 那裡的 .txt 只寫英文：伺服器沒告訴瀏覽器編碼時，中文和特殊符號會被猜錯而變成亂碼。
  */
 import { mkdir, readFile, writeFile, access } from 'node:fs/promises'
 import subsetFont from 'subset-font'

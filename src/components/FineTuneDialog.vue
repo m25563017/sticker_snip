@@ -170,7 +170,7 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
         <!-- ======== 標題列：黑底白字，和其他面板一致 ======== -->
         <header class="fine-tune-dialog__titlebar hand-panel-title flex items-center justify-between gap-4">
           <h2 class="text-lg">{{ t('fineTune.title', { number: props.displayNumber }) }}</h2>
-          <button type="button" class="fine-tune-dialog__close" :aria-label="t('fineTune.close')" @click="handleClose">
+          <button type="button" class="fine-tune-dialog__close" :aria-label="t('common.close')" @click="handleClose">
             <AppIcon name="close" :size="20" />
           </button>
         </header>

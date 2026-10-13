@@ -2,9 +2,16 @@
 import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useImageUpload } from "@/composables/useImageUpload";
+import { useHelpDialog } from "@/composables/useHelpDialog";
 
 const { t } = useI18n();
 const { isLoading, loadImageFile } = useImageUpload();
+const help = useHelpDialog();
+
+/** 整片區域點了會開選檔視窗，這個連結要擋下點擊，只打開說明 */
+function handleOpenCopyright(): void {
+    help.open("about");
+}
 const isDraggingOver = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
@@ -49,6 +56,13 @@ function handleClickZone(): void {
                 <!-- 整片都能點，這裡不用真的 button，避免點一下觸發兩次選檔 -->
                 <span class="hand-button hand-button--primary">{{ t("upload.browse") }}</span>
                 <p class="text-sm">{{ t("upload.tagline") }}</p>
+                <!-- 素材版權提醒：每個人上傳前都看得到，但不打斷操作 -->
+                <p class="text-xs opacity-70">
+                    {{ t("upload.copyrightNotice") }}
+                    <button type="button" class="underline underline-offset-2" @click.stop="handleOpenCopyright">
+                        {{ t("upload.copyrightLink") }}
+                    </button>
+                </p>
             </template>
         </div>
     </div>
