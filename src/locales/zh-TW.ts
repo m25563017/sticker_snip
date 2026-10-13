@@ -116,6 +116,10 @@ export default {
     zoomHintTouch: '兩指捏合縮放、兩指拖曳平移',
     close: '關閉',
     original: '原圖（去背前，僅供對照）',
+    panes: {
+      original: '原圖',
+      result: '去背結果',
+    },
     backgroundColor: '背景色',
     threshold: '閾值',
     thresholdHint: '數值越大，越多「接近背景色」的像素會被去除；背景沒去乾淨就調高，貼紙被吃掉就調低',

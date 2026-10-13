@@ -19,6 +19,8 @@ const props = defineProps<{
    * 中央方框與下方色碼都依這個範圍呈現，讓使用者看到的就是點下去會發生的事。
    */
   selectRadius: number
+  /** 觸控時顯示在手指正上方：手指會擋住下方和兩側，上方才看得到 */
+  aboveFinger?: boolean
 }>()
 
 /** 放大鏡顯示游標周圍 11×11 像素 */
@@ -30,6 +32,10 @@ const LOUPE_SIZE = PATCH_SIZE * CELL_SIZE
 /** 放大鏡和游標保持距離，避免擋住正要點的位置 */
 const CURSOR_GAP = 20
 const LABEL_HEIGHT = 28
+/** 觸控時和手指的距離要更大：指尖本身就有約 1 公分寬 */
+const FINGER_GAP = 56
+/** 貼近視窗邊緣時至少留這麼多空隙 */
+const EDGE_MARGIN = 4
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
@@ -40,8 +46,18 @@ const pickedColor = computed(() => {
   return rgbToHex(sampleColor(image, point.x, point.y, selectRadius))
 })
 
-/** 靠近視窗右緣或下緣時，翻到游標的另一側，避免放大鏡被切掉 */
+/**
+ * 滑鼠：放在游標右下，靠近視窗右緣或下緣時翻到另一側，避免放大鏡被切掉。
+ * 觸控：放在手指正上方並水平置中，太靠近上緣時改放到手指下方。
+ */
 const position = computed(() => {
+  if (props.aboveFinger) {
+    const height = LOUPE_SIZE + LABEL_HEIGHT
+    const left = Math.min(Math.max(EDGE_MARGIN, props.clientX - LOUPE_SIZE / 2), window.innerWidth - LOUPE_SIZE - EDGE_MARGIN)
+    const above = props.clientY - FINGER_GAP - height
+    return { left: `${left}px`, top: `${above >= EDGE_MARGIN ? above : props.clientY + FINGER_GAP}px` }
+  }
+
   const fitsRight = props.clientX + CURSOR_GAP + LOUPE_SIZE < window.innerWidth
   const fitsBelow = props.clientY + CURSOR_GAP + LOUPE_SIZE + LABEL_HEIGHT < window.innerHeight
   return {

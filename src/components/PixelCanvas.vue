@@ -73,14 +73,26 @@ function eventToImagePoint(event: MouseEvent): Point | null {
 }
 
 function handleClick(event: MouseEvent): void {
-  // 筆刷模式下放開滑鼠也會觸發 click，不能再當成一次點選
-  if (isBrushMode.value) return
+  // 筆刷模式下放開滑鼠也會觸發 click，不能再當成一次點選；觸控的點選改在放開手指時處理
+  if (isBrushMode.value || lastPointerIsTouch) return
   const point = eventToImagePoint(event)
   if (point) emit('pick', point)
 }
 
 // ======== 游標位置（放大鏡、筆刷圓圈共用） ========
-const hover = ref<{ point: Point; clientX: number; clientY: number } | null>(null)
+const hover = ref<{ point: Point; clientX: number; clientY: number; isTouch: boolean } | null>(null)
+
+function updateHover(event: PointerEvent, point: Point | null): void {
+  hover.value = point ? { point, clientX: event.clientX, clientY: event.clientY, isTouch: event.pointerType === 'touch' } : null
+}
+
+// ======== 觸控的點選 ========
+/**
+ * 用手指點選時，指尖會蓋住要點的位置，看不到點到哪一格。
+ * 所以觸控改成：按下時顯示放大鏡，可以拖著手指對準，放開那一刻才算點下去。
+ */
+let lastPointerIsTouch = false
+let pendingTouchPick = false
 
 /** 圖片在畫面上的放大倍率，用來把筆刷半徑換算成游標圓圈的實際大小 */
 function displayScale(): number {
@@ -113,8 +125,15 @@ function drawStrokeSegment(from: Point, to: Point): void {
 }
 
 function handlePointerDown(event: PointerEvent): void {
-  if (!isBrushMode.value || event.button !== 0) return
+  if (event.button !== 0) return
+  lastPointerIsTouch = event.pointerType === 'touch'
   const point = eventToImagePoint(event)
+  // 觸控沒有「滑過」，按下的當下就要顯示放大鏡、筆刷圓圈
+  if (lastPointerIsTouch) updateHover(event, point)
+  if (!isBrushMode.value) {
+    pendingTouchPick = lastPointerIsTouch
+    return
+  }
   if (!point) return
   canvasRef.value?.setPointerCapture(event.pointerId)
   strokePoints = [point]
@@ -123,7 +142,7 @@ function handlePointerDown(event: PointerEvent): void {
 
 function handlePointerMove(event: PointerEvent): void {
   const point = eventToImagePoint(event)
-  hover.value = point ? { point, clientX: event.clientX, clientY: event.clientY } : null
+  updateHover(event, point)
   if (isBrushMode.value) brushCursorSize.value = (props.brushRadius ?? 0) * 2 * displayScale()
 
   if (strokePoints && point) {
@@ -132,13 +151,24 @@ function handlePointerMove(event: PointerEvent): void {
   }
 }
 
-function handlePointerUp(): void {
+function handlePointerUp(event: PointerEvent): void {
+  // 手指離開後放大鏡、筆刷圓圈就沒有意義了（滑鼠則繼續跟著游標）
+  if (event.pointerType === 'touch') hover.value = null
+  if (pendingTouchPick) {
+    pendingTouchPick = false
+    const point = eventToImagePoint(event)
+    if (point) emit('pick', point)
+    return
+  }
   if (!strokePoints) return
   emit('stroke', strokePoints)
   strokePoints = null
 }
 
 function handlePointerCancel(): void {
+  // 例如第二根手指放下改成縮放：這次不算點選，也不留下筆刷
+  pendingTouchPick = false
+  hover.value = null
   strokePoints = null
   draw() // 清掉畫到一半的預覽
 }
@@ -171,6 +201,7 @@ watch(() => props.image, draw)
       :client-x="hover.clientX"
       :client-y="hover.clientY"
       :select-radius="props.loupeRadius"
+      :above-finger="hover.isTouch"
     />
   </template>
   <!-- 筆刷模式用圓圈取代游標，圓圈大小就是實際會擦到的範圍 -->

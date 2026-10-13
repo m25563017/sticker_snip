@@ -120,6 +120,10 @@ export default {
     zoomHintTouch: 'Pinch to zoom, drag with two fingers to pan',
     close: 'Close',
     original: 'Original (reference only)',
+    panes: {
+      original: 'Original',
+      result: 'Result',
+    },
     backgroundColor: 'Bg color',
     threshold: 'Threshold',
     thresholdHint: 'Higher removes more pixels close to the background color. Raise it if background remains; lower it if the sticker gets eaten',

@@ -95,6 +95,19 @@ function handleFitView(): void {
   view.value = FIT_VIEW
 }
 
+// ======== 手機：原圖／結果切換 ========
+/**
+ * 手機螢幕並排兩張圖，每張只剩一半寬，什麼都看不清楚，所以改成切換顯示。
+ * 兩張共用同一份縮放視角，切過去還是同一個位置，方便對照。預設看結果（要修的是它）。
+ */
+type ComparePane = 'original' | 'result'
+const COMPARE_PANES: ComparePane[] = ['original', 'result']
+const mobilePane = ref<ComparePane>('result')
+
+function handleSelectPane(pane: ComparePane): void {
+  mobilePane.value = pane
+}
+
 // ======== 閾值 ========
 /** 拖動時數字即時跟著動，寫回 store（觸發重算去背）等停手；還原時可取消、關閉時自動送出 */
 const {
@@ -178,9 +191,24 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
             <BackdropToggle :model-value="props.backdrop" @update:model-value="handleBackdropChange" />
           </div>
 
+          <!-- ======== 手機：原圖／結果切換（電腦版兩張並排，不需要） ======== -->
+          <div class="flex gap-2 md:hidden" role="radiogroup">
+            <template v-for="pane in COMPARE_PANES" :key="pane">
+              <button
+                type="button"
+                role="radio"
+                class="hand-button flex-1 justify-center"
+                :aria-checked="mobilePane === pane"
+                @click="handleSelectPane(pane)"
+              >
+                {{ t(`fineTune.panes.${pane}`) }}
+              </button>
+            </template>
+          </div>
+
           <!-- ======== 原圖（只供對照、不可編輯）與去背結果 ======== -->
           <div class="fine-tune-dialog__compare">
-            <figure class="fine-tune-dialog__figure">
+            <figure class="fine-tune-dialog__figure" :class="{ 'max-md:hidden': mobilePane !== 'original' }">
               <!--
                 原圖不接受任何點擊：所有會改變結果的操作都集中在右邊的去背結果上，
                 才都會記在同一份歷史紀錄裡，復原、重做都退得回來
@@ -196,6 +224,7 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
             </figure>
             <ManualEditPanel
               class="fine-tune-dialog__figure"
+              :class="{ 'max-md:hidden': mobilePane !== 'result' }"
               :selection="props.selection"
               :preview="props.preview"
               v-model:view="view"
@@ -311,6 +340,34 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
     height: 24px;
     border: var(--hand-border);
     border-radius: 2px;
+  }
+
+  /*
+   * 手機：全螢幕（彈窗外沒有空間可以點來關閉，用標題列的 ✕ 或「完成」），
+   * 原圖與結果只顯示一張，圖片高度依螢幕高度調整
+   */
+  @media (max-width: 767px) {
+    padding: 0;
+
+    .fine-tune-dialog__panel {
+      width: 100%;
+      height: 100%;
+      border: none;
+      box-shadow: none;
+    }
+
+    .fine-tune-dialog__body {
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .fine-tune-dialog__compare {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .fine-tune-dialog__image {
+      height: 50vh;
+    }
   }
 
   /* 在黑色標題列上：白色叉叉，滑過時反白 */

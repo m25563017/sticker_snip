@@ -187,5 +187,12 @@ function handleRedo(): void {
     cursor: crosshair;
     border: var(--hand-border);
   }
+
+  /* 手機：和原圖同高，切換時圖片位置不會跳動 */
+  @media (max-width: 767px) {
+    .manual-edit-panel__image {
+      height: 50vh;
+    }
+  }
 }
 </style>
