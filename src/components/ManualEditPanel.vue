@@ -42,20 +42,15 @@ const TOOLS: { value: EditTool; icon: IconName }[] = [
   { value: 'erase', icon: 'eraser' },
   { value: 'keep', icon: 'brush' },
 ]
-/** 筆刷大小（直徑）預設為範圍短邊的 5%，範圍 300 px 約 15 px */
-const BRUSH_SIZE_RATIO = 0.05
+/** 筆刷大小（直徑，圖片 px）：預設 30，擦一般大小的殘留背景剛好；可調範圍 2～100 */
+const BRUSH_SIZE_DEFAULT = 30
 const BRUSH_SIZE_MIN = 2
+const BRUSH_SIZE_MAX = 100
 
 const activeTool = ref<EditTool>('wand')
 /** 觸控裝置看不到滑過才出現的按鈕說明，改把目前工具的用法直接寫在畫面上 */
 const isTouchDevice = useIsTouchDevice()
-const brushSize = ref(
-  Math.max(
-    BRUSH_SIZE_MIN,
-    Math.round(Math.min(props.preview?.width ?? 0, props.preview?.height ?? 0) * BRUSH_SIZE_RATIO),
-  ),
-)
-const brushSizeMax = Math.max(60, brushSize.value * 3)
+const brushSize = ref(BRUSH_SIZE_DEFAULT)
 
 /** 裁切後座標 → 原圖座標：手動修改一律存原圖座標，調整範圍大小後位置才不會跑掉 */
 function toSourcePoint(point: Point): Point | null {
@@ -168,7 +163,7 @@ function handleRedo(): void {
           <input
             type="range"
             :min="BRUSH_SIZE_MIN"
-            :max="brushSizeMax"
+            :max="BRUSH_SIZE_MAX"
             step="1"
             :value="brushSize"
             @input="handleBrushSizeInput"
