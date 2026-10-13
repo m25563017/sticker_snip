@@ -20,7 +20,7 @@ export default {
     reupload: '重新上傳',
     preview: '預覽結果（{count} 張）',
     backToSelect: '返回框選',
-    exporting: '處理中…',
+    exporting: '處理中…（{done} / {total}）',
     downloadPng: '下載 PNG',
     downloadZip: '下載 zip（{count} 張）',
     reuploadConfirm: {
@@ -37,6 +37,7 @@ export default {
       title: '檔案格式錯誤',
       message: '請上傳圖片檔案（PNG、JPG 等），目前選到的不是圖片。',
     },
+    downscaled: '圖片太大，已自動縮小為 {width} × {height}，處理起來更順暢',
     readFailed: {
       title: '讀取失敗',
       message: '圖片讀取時發生錯誤，請再試一次。',

@@ -2,7 +2,7 @@ import { ref } from "vue";
 import { useNotify } from "@pieda/core";
 import { useI18n } from "vue-i18n";
 import { useEditorStore } from "@/stores/editor";
-import { imageBitmapToPixelBuffer } from "@/lib/canvas";
+import { downscaleBitmap, imageBitmapToPixelBuffer, MAX_IMAGE_SIDE } from "@/lib/canvas";
 /**
  * 上傳圖片的流程：讀檔 → 解碼成 ImageBitmap → 讀出像素 → 交給 store。
  * 這裡只負責瀏覽器端的讀檔與錯誤通知；換圖後的重設與自動偵測由 store.loadImage 處理。
@@ -26,8 +26,18 @@ export function useImageUpload() {
 
         isLoading.value = true;
         try {
-            const bitmap = await createImageBitmap(file);
+            const original = await createImageBitmap(file);
+            const originalWidth = original.width;
+            const bitmap = await downscaleBitmap(original, MAX_IMAGE_SIDE);
             editorStore.loadImage(bitmap, imageBitmapToPixelBuffer(bitmap));
+            // 縮小過要告訴使用者，不然下載的貼紙比預期小會不知道為什麼
+            if (bitmap.width !== originalWidth) {
+                $notify.toast({
+                    title: t("upload.downscaled", { width: bitmap.width, height: bitmap.height }),
+                    variant: "info",
+                    timer: 5000,
+                });
+            }
         } catch {
             $notify.alert({
                 title: t("upload.readFailed.title"),

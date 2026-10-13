@@ -272,14 +272,46 @@ describe('useEditorStore', () => {
       expect(kept?.type === 'rect' && kept.bounds).toEqual({ ...before, x: before!.x + 2, y: before!.y + 3 })
     })
 
-    it('高亮中的是自動範圍時，重新偵測後清掉高亮（舊範圍已被替換）', () => {
+    it('位置大小沒變的自動範圍沿用原本的那一個：id 不變，去背結果可以直接用快取', () => {
       const store = useEditorStore()
       store.loadImage(fakeBitmap, makeTwoStickers())
-      store.activeSelectionId = store.selections[0].id
+      const before = [...store.selections]
+      store.activeSelectionId = before[0].id
 
       store.autoDetect()
 
+      expect(store.selections).toEqual(before)
+      expect(store.selections[0]).toBe(before[0])
+      // 高亮的範圍還在，高亮也保留
+      expect(store.activeSelectionId).toBe(before[0].id)
+    })
+
+    it('範圍變了才換成新的：合併距離加大、兩張合成一張時，舊的高亮清掉', () => {
+      const store = useEditorStore()
+      store.loadImage(fakeBitmap, makeTwoStickers())
+      const oldIds = store.selections.map((item) => item.id)
+      store.activeSelectionId = oldIds[0]
+
+      store.mergeDistance = 30
+      store.autoDetect()
+
+      expect(store.selections).toHaveLength(1)
+      expect(oldIds).not.toContain(store.selections[0].id)
       expect(store.activeSelectionId).toBeNull()
+    })
+
+    it('微調過的自動範圍不會被洗掉：即使這次偵測結果變了，也接在後面保留', () => {
+      const store = useEditorStore()
+      store.loadImage(fakeBitmap, makeTwoStickers())
+      const tuned = store.selections[0]
+      store.addManualEdit(tuned.id, { tool: 'wand', point: { x: 6, y: 6 } })
+
+      store.mergeDistance = 30
+      store.autoDetect()
+
+      expect(store.selections).toHaveLength(2)
+      expect(store.selections[1]).toBe(tuned)
+      expect(tuned.manualEdits).toHaveLength(1)
     })
   })
 

@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useStorage } from '@vueuse/core'
 import { useEditorStore } from '@/stores/editor'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
-import { DEFAULT_THRESHOLD, type Selection } from '@/types/selection'
+import { isFineTuned } from '@/types/selection'
 import type { PreviewBackdrop } from '@/types/preview'
 import OutputPreview from '@/components/OutputPreview.vue'
 import OutputSettingsPanel from '@/components/OutputSettingsPanel.vue'
@@ -36,11 +36,6 @@ const backdrop = useStorage<PreviewBackdrop>('sticker-snip:preview-backdrop', 'c
 const fineTuneId = ref<number | null>(null)
 const fineTuneIndex = computed(() => editorStore.selections.findIndex((item) => item.id === fineTuneId.value))
 const fineTuneTarget = computed(() => editorStore.selections[fineTuneIndex.value])
-
-/** 調整過的範圍加上標記，使用者回到檢查頁時一眼看出哪些已經處理過 */
-function isAdjusted(selection: Selection): boolean {
-  return selection.threshold !== DEFAULT_THRESHOLD || selection.manualEdits.length > 0
-}
 
 function handleOpenFineTune(id: number): void {
   fineTuneId.value = id
@@ -76,7 +71,8 @@ function handleRemove(id: number): void {
             <button type="button" class="review-grid__card" @click="handleOpenFineTune(selection.id)">
               <span class="flex items-center justify-between w-full pr-8 text-sm">
                 #{{ index + 1 }}
-                <template v-if="isAdjusted(selection)">
+                <!-- 調整過的範圍加上標記，回到檢查頁時一眼看出哪些已經處理過 -->
+                <template v-if="isFineTuned(selection)">
                   <span class="review-grid__badge">{{ t('review.adjusted') }}</span>
                 </template>
               </span>

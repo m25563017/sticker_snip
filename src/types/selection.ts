@@ -24,6 +24,11 @@ export interface Bounds {
 /** 新範圍的預設閾值：顏色距離在此以內視為背景 */
 export const DEFAULT_THRESHOLD = 30
 
+/** 微調過（改過閾值或有手動修改）：檢查頁標示「已微調」，重新偵測時也不會被洗掉 */
+export function isFineTuned(selection: Pick<SelectionBase, 'threshold' | 'manualEdits'>): boolean {
+  return selection.threshold !== DEFAULT_THRESHOLD || selection.manualEdits.length > 0
+}
+
 /** 範圍怎麼來的：重新自動偵測時只替換 auto 的，使用者手動畫的保留 */
 export type SelectionCreatedBy = 'auto' | 'manual'
 

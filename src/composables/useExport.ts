@@ -26,6 +26,14 @@ function triggerDownload(blob: Blob, fileName: string): void {
 }
 
 /**
+ * 等到瀏覽器把畫面畫出來再繼續：requestAnimationFrame 排在下一次重畫前，
+ * 裡面再排一個 setTimeout，就會落在重畫之後。像接力賽交棒前先讓觀眾看一眼比分。
+ */
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve)))
+}
+
+/**
  * 匯出流程：每個範圍依畫面順序去背 → 依輸出設定排版與加上效果 → 轉 PNG → 下載。
  * 只有一張時直接下載 PNG：只為了一張圖還要解壓縮，多一個沒必要的步驟；兩張以上才打包成 zip。
  * 去背走和縮圖相同的 processSelection，確保下載結果與預覽一致。
@@ -35,6 +43,8 @@ export function useExport() {
   const $notify = useNotify()
   const editorStore = useEditorStore()
   const isExporting = ref(false)
+  /** 已完成幾張：按鈕顯示「處理中 5 / 19」，張數多、手機慢時才知道還在跑，不是當掉 */
+  const exportedCount = ref(0)
 
   async function exportStickers(): Promise<void> {
     const source = editorStore.sourcePixels
@@ -50,6 +60,7 @@ export function useExport() {
     }
 
     isExporting.value = true
+    exportedCount.value = 0
     try {
       const { filePrefix, edgeQuality } = editorStore.outputSettings
       const files: { name: string; png: Blob }[] = []
@@ -59,6 +70,9 @@ export function useExport() {
         const content = trimTransparent(processSelection(source, selection, edgeQuality))
         const png = await pixelBufferToPngBlob(renderOutput(content, editorStore.outputSettings))
         files.push({ name: buildFileName(filePrefix, index, selections.length), png })
+        exportedCount.value = index + 1
+        // 每張之間讓畫面更新一次：總時間幾乎不變，但進度看得到、頁面也不會整個凍住
+        await nextFrame()
       }
 
       if (files.length === 1) {
@@ -80,5 +94,5 @@ export function useExport() {
     }
   }
 
-  return { isExporting, exportStickers }
+  return { isExporting, exportedCount, exportStickers }
 }

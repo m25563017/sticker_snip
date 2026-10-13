@@ -21,7 +21,7 @@ export default {
     reupload: 'Upload new image',
     preview: 'Preview ({count} stickers) | Preview ({count} sticker) | Preview ({count} stickers)',
     backToSelect: 'Back to selection',
-    exporting: 'Processing…',
+    exporting: 'Processing… ({done} / {total})',
     downloadPng: 'Download PNG',
     downloadZip: 'Download zip ({count} files)',
     reuploadConfirm: {
@@ -38,6 +38,7 @@ export default {
       title: 'Unsupported file',
       message: 'Please upload an image file (PNG, JPG, etc.). The selected file is not an image.',
     },
+    downscaled: 'Large image resized to {width} × {height} for smoother processing',
     readFailed: {
       title: 'Could not read image',
       message: 'Something went wrong while reading the image. Please try again.',

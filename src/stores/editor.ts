@@ -14,6 +14,7 @@ import { DEFAULT_SHADOW, type ShadowSettings } from '@/lib/stickerShadow'
 import { DEFAULT_BACKGROUND, type BackgroundSettings } from '@/lib/stickerBackground'
 import {
   DEFAULT_THRESHOLD,
+  isFineTuned,
   type Bounds,
   type ManualEdit,
   type Point,
@@ -101,21 +102,32 @@ export const useEditorStore = defineStore('editor', () => {
   }
 
   /**
-   * 整張自動偵測（需求 4.3）。重新偵測時只替換自動產生的範圍，使用者手動畫的保留，
-   * 才不會因為調一下合併距離就把辛苦補畫的範圍洗掉。
+   * 整張自動偵測（需求 4.3）。重新偵測時只替換自動產生的範圍：
+   * - 手動畫的、微調過的保留，才不會因為調一下合併距離就把辛苦修好的範圍洗掉
+   * - 位置大小完全沒變的自動範圍沿用原本的那一個（id 不變），去背結果直接用快取，不必重算
    * 排列順序：自動偵測的依閱讀順序在前，手動的接在後面。
    */
   function autoDetect(): void {
     const pixels = sourcePixels.value
     if (!pixels) return
 
-    const manual = selections.value.filter((item) => item.createdBy === 'manual')
-    if (!manual.some((item) => item.id === activeSelectionId.value)) activeSelectionId.value = null
+    const previous = selections.value
+    const kept = previous.filter((item) => item.createdBy === 'manual' || isFineTuned(item))
+    // 用「位置與大小」當鑰匙找回舊範圍；自動偵測只會產生矩形
+    const boundsKey = ({ x, y, width, height }: Bounds) => `${x},${y},${width},${height}`
+    const reusable = new Map(
+      previous.flatMap((item) => (item.createdBy === 'auto' && item.type === 'rect' ? [[boundsKey(item.bounds), item] as const] : [])),
+    )
+
     selections.value = []
     for (const bounds of detectStickers(pixels, { mergeDistance: mergeDistance.value })) {
-      addSelection({ type: 'rect', bounds }, 'auto')
+      const same = reusable.get(boundsKey(bounds))
+      if (same) selections.value.push(same)
+      else addSelection({ type: 'rect', bounds }, 'auto')
     }
-    selections.value.push(...manual)
+    // 微調過但這次沒被偵測到的（例如被合併進別的框），跟手動的一起接在後面
+    selections.value.push(...kept.filter((item) => !selections.value.includes(item)))
+    if (!selections.value.some((item) => item.id === activeSelectionId.value)) activeSelectionId.value = null
   }
 
   /** 改用手動圈選：清掉自動偵測的範圍，手動畫的保留。想再自動偵測時按「重新偵測」即可找回 */

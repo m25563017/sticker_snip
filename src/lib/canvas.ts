@@ -1,6 +1,38 @@
 import type { PixelBuffer } from './pixelBuffer'
 
 /**
+ * 上傳圖片的長邊上限。iPhone Safari 單張畫布最多約 1677 萬像素（4096 × 4096），
+ * 超過就畫不出來；這個大小對素材圖也綽綽有餘，裡面的貼紙輸出 1024 px 仍然清楚。
+ */
+export const MAX_IMAGE_SIDE = 4096
+
+/** 長邊超過上限時等比縮小到剛好等於上限；沒超過就原樣回傳 */
+export function limitImageSize(width: number, height: number, maxSide: number): { width: number; height: number } {
+  const scale = maxSide / Math.max(width, height)
+  if (scale >= 1) return { width, height }
+  return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) }
+}
+
+/**
+ * 太大的圖先縮小再處理。縮小用 canvas 畫一次（瀏覽器內建的高品質縮放），
+ * 原本的大 bitmap 用完就釋放，不佔著記憶體。沒超過上限時原樣回傳同一個 bitmap。
+ */
+export async function downscaleBitmap(bitmap: ImageBitmap, maxSide: number): Promise<ImageBitmap> {
+  const { width, height } = limitImageSize(bitmap.width, bitmap.height, maxSide)
+  if (width === bitmap.width && height === bitmap.height) return bitmap
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('無法建立 2D canvas context，瀏覽器可能不支援')
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(bitmap, 0, 0, width, height)
+  bitmap.close()
+  return createImageBitmap(canvas)
+}
+
+/**
  * 把 ImageBitmap 畫到一張隱藏的 canvas 上，再讀出原始像素資料。
  * 這是唯一需要真的碰瀏覽器 Canvas API 的地方──
  * 之後 detectBackgroundColor／flood fill 去背都只操作這個純資料結構，

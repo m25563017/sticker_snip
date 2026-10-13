@@ -17,7 +17,7 @@ import { useSelectionPreviews } from '@/composables/useSelectionPreviews'
 const { t } = useI18n()
 const $notify = useNotify()
 const editorStore = useEditorStore()
-const { isExporting, exportStickers } = useExport()
+const { isExporting, exportedCount, exportStickers } = useExport()
 /**
  * 去背預覽在這裡建立一次，再傳給縮圖列表與檢查頁：
  * 兩邊各自建立的話，切換階段時會把所有範圍重算一遍。
@@ -26,8 +26,8 @@ const { previews } = useSelectionPreviews()
 
 /** 只有一張時直接下載 PNG，按鈕文字跟著說清楚會拿到什麼 */
 const exportLabel = computed(() => {
-  if (isExporting.value) return t('app.exporting')
   const count = editorStore.selectionCount
+  if (isExporting.value) return t('app.exporting', { done: exportedCount.value, total: count })
   return count === 1 ? t('app.downloadPng') : t('app.downloadZip', { count })
 })
 
