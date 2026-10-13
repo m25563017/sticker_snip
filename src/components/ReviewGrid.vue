@@ -11,6 +11,7 @@ import OutputSettingsPanel from '@/components/OutputSettingsPanel.vue'
 import BackdropToggle from '@/components/BackdropToggle.vue'
 import FineTuneDialog from '@/components/FineTuneDialog.vue'
 import AppIcon from '@/components/AppIcon.vue'
+import { useOutputSettingsSheet } from '@/composables/useOutputSettingsSheet'
 
 const { t } = useI18n()
 const props = defineProps<{
@@ -19,6 +20,8 @@ const props = defineProps<{
 }>()
 
 const editorStore = useEditorStore()
+/** 手機版：輸出設定是從底部拉出的面板，開關按鈕在底部操作列 */
+const outputSettingsSheet = useOutputSettingsSheet()
 
 /**
  * 只把會影響畫面的設定傳給預覽：檔名前綴、邊緣品質不在這裡，
@@ -52,7 +55,7 @@ function handleRemove(id: number): void {
 </script>
 
 <template>
-  <section class="review-grid flex gap-4 h-full pt-4">
+  <section class="review-grid flex gap-4 h-full pt-4 max-md:pt-2">
     <!-- ======== 左：預覽卡片 ======== -->
     <div class="flex flex-col flex-1 gap-4 min-w-0">
       <!-- ======== 說明 + 背景切換 ======== -->
@@ -93,7 +96,15 @@ function handleRemove(id: number): void {
     </div>
 
     <!-- ======== 右：輸出設定，調整後左邊的預覽即時反映 ======== -->
-    <OutputSettingsPanel class="review-grid__settings" />
+    <!-- 手機版改成從底部拉出的面板：點變暗的地方或右上角 ✕ 都能關閉 -->
+    <template v-if="outputSettingsSheet.isOpen.value">
+      <div class="review-grid__backdrop md:hidden" @click="outputSettingsSheet.close"></div>
+    </template>
+    <OutputSettingsPanel
+      class="review-grid__settings"
+      :class="{ 'review-grid__settings--open': outputSettingsSheet.isOpen.value }"
+      @close="outputSettingsSheet.close"
+    />
 
     <template v-if="fineTuneTarget">
       <FineTuneDialog
@@ -139,6 +150,13 @@ function handleRemove(id: number): void {
     .review-grid__remove:focus-visible {
       opacity: 1;
     }
+
+    /* 觸控裝置沒有「滑過」，刪除鈕一直顯示，否則永遠找不到 */
+    @media (hover: none) {
+      .review-grid__remove {
+        opacity: 1;
+      }
+    }
   }
 
   /* 外觀用共用的 hand-button，這裡只負責疊到卡片右上角 */
@@ -176,6 +194,45 @@ function handleRemove(id: number): void {
     justify-content: center;
     width: 100%;
     height: 200px;
+  }
+
+  /* 手機：卡片固定兩欄；輸出設定平常藏在畫面下方，打開時往上滑出 */
+  @media (max-width: 767px) {
+    .review-grid__list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .review-grid__image {
+      height: 140px;
+    }
+
+    .review-grid__backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background-color: rgba(0, 0, 0, 0.35);
+    }
+
+    .review-grid__settings {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 41;
+      width: auto;
+      max-height: 70%;
+      transform: translateY(100%);
+      visibility: hidden;
+      transition:
+        transform 0.2s ease-out,
+        visibility 0.2s;
+
+      &.review-grid__settings--open {
+        transform: translateY(0);
+        visibility: visible;
+      }
+    }
   }
 
   .review-grid__badge {

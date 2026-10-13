@@ -22,6 +22,7 @@ export default {
     reupload: 'Upload new image',
     preview: 'Preview ({count} stickers) | Preview ({count} sticker) | Preview ({count} stickers)',
     backToSelect: 'Back to selection',
+    outputSettings: 'Settings',
     exporting: 'Processing… ({done} / {total})',
     downloadPng: 'Download PNG',
     downloadZip: 'Download zip ({count} files)',
@@ -58,6 +59,7 @@ export default {
     },
     autoCount: 'No stickers detected | 1 sticker detected | {count} stickers detected',
     mergeDistance: 'Merge distance',
+    detectSettings: 'Detection settings',
     redetect: 'Re-detect',
     clearAuto: 'Clear auto boxes (draw manually)',
     hint: 'Lower it if two stickers share one box; raise it if a small decoration gets split off. Click a box to select it; drag the handles of rectangles and ellipses to resize. Edited and hand-drawn boxes are kept when re-detecting',
@@ -65,7 +67,7 @@ export default {
   thumbnails: {
     title: 'Selections ({count})',
     empty: 'Drag on the image to box each sticker',
-    rightClickHint: 'Right-click the image to delete the selected (orange) box',
+    selectHint: 'Click a box to select it (orange), then press Delete next to it. On desktop you can also right-click',
     backgroundColor: 'Background {color}',
   },
   backdrop: {

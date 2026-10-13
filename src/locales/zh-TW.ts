@@ -21,6 +21,7 @@ export default {
     reupload: '重新上傳',
     preview: '預覽結果（{count} 張）',
     backToSelect: '返回框選',
+    outputSettings: '輸出設定',
     exporting: '處理中…（{done} / {total}）',
     downloadPng: '下載 PNG',
     downloadZip: '下載 zip（{count} 張）',
@@ -54,6 +55,7 @@ export default {
     },
     autoCount: '自動偵測到 {count} 張',
     mergeDistance: '合併距離',
+    detectSettings: '偵測設定',
     redetect: '重新偵測',
     clearAuto: '清除自動框（改用手動）',
     hint: '兩張貼紙被框在一起就調小；旁邊的小裝飾被拆成另一張就調大。點框可選取，矩形與橢圓可拖曳控制點調整大小；調整過或手動畫的框，重新偵測時都會保留',
@@ -61,7 +63,7 @@ export default {
   thumbnails: {
     title: '範圍（{count}）',
     empty: '在右側圖片上拖曳，框出每一張貼紙',
-    rightClickHint: '在圖片上按右鍵，可刪除目前選取（橘框）的範圍',
+    selectHint: '點框可選取（橘框），按框旁的「刪除」移除；電腦上也可以按右鍵',
     backgroundColor: '背景色 {color}',
   },
   backdrop: {

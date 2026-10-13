@@ -17,6 +17,9 @@ const FRAME_MARGIN = 10
 /** 圖片的手繪外框：線寬與錯位陰影的距離（px），和其他面板一致 */
 const FRAME_LINE_WIDTH = 2
 const FRAME_SHADOW_OFFSET = 6
+/** 浮動刪除按鈕和框之間的距離；框上方的空間不到這麼高時，改放到框的下方 */
+const DELETE_BUTTON_GAP = 6
+const DELETE_BUTTON_SPACE = 40
 
 const { t } = useI18n()
 const editorStore = useEditorStore()
@@ -59,6 +62,37 @@ const {
 
 /** 按住空白鍵時，不論游標在哪裡都顯示成手掌 */
 const displayedCursor = computed(() => (isPanning.value ? 'grabbing' : isSpaceHeld.value ? 'grab' : cursor.value))
+
+// ======== 浮動刪除按鈕 ========
+/**
+ * 選取中的範圍旁邊顯示「刪除」：右鍵刪除是看不到的隱藏操作，手機上也沒有右鍵。
+ * 放在框的右上角外側（上方放不下就放右下角外側），拖曳中先藏起來，免得擋住視線。
+ * 框被平移到畫面外時也不顯示。
+ */
+const deleteButtonStyle = computed(() => {
+  const active = editorStore.selections.find((item) => item.id === editorStore.activeSelectionId)
+  const container = containerRef.value
+  if (!active || !container || interaction.value || transform.value.scale === 0) return null
+
+  const bounds = boundsToDisplay(selectionBounds(active), transform.value)
+  const width = container.clientWidth
+  const height = container.clientHeight
+  const isOffScreen = bounds.x + bounds.width < 0 || bounds.x > width || bounds.y + bounds.height < 0 || bounds.y > height
+  if (isOffScreen) return null
+
+  const right = Math.min(width - DELETE_BUTTON_GAP, bounds.x + bounds.width)
+  const above = bounds.y >= DELETE_BUTTON_SPACE
+  return {
+    left: `${right}px`,
+    top: `${above ? bounds.y - DELETE_BUTTON_GAP : bounds.y + bounds.height + DELETE_BUTTON_GAP}px`,
+    // 以按鈕的右邊（放上方時是右下角）對齊框的右上角
+    transform: above ? 'translate(-100%, -100%)' : 'translateX(-100%)',
+  }
+})
+
+function handleDeleteActive(): void {
+  editorStore.removeActiveSelection()
+}
 
 let resizeObserver: ResizeObserver | null = null
 
@@ -196,6 +230,13 @@ watch(() => [editorStore.selections, editorStore.activeSelectionId], redrawOverl
       @contextmenu.prevent="handleContextMenu"
     ></canvas>
 
+    <!-- ======== 選取中的範圍：浮動刪除按鈕 ======== -->
+    <template v-if="deleteButtonStyle">
+      <button type="button" class="editor-canvas__delete hand-button text-sm" :style="deleteButtonStyle" @click="handleDeleteActive">
+        <AppIcon name="trash" />{{ t('common.delete') }}
+      </button>
+    </template>
+
     <!-- ======== 放大時才出現：顯示倍率，點了回到整張 ======== -->
     <template v-if="view.scale > 1">
       <button type="button" class="editor-canvas__fit hand-button text-sm" :title="t('common.fitView')" @click="handleFitView">
@@ -216,6 +257,11 @@ watch(() => [editorStore.selections, editorStore.activeSelectionId], redrawOverl
     inset: 0;
     width: 100%;
     height: 100%;
+  }
+
+  .editor-canvas__delete {
+    position: absolute;
+    box-shadow: 2px 2px 0 var(--color-ink);
   }
 
   .editor-canvas__fit {

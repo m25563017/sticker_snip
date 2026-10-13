@@ -7,6 +7,7 @@ import type { PreviewBackdrop } from '@/types/preview'
 import type { ManualEdit, Point, Selection } from '@/types/selection'
 import PixelCanvas from '@/components/PixelCanvas.vue'
 import ZoomViewport from '@/components/ZoomViewport.vue'
+import { useIsTouchDevice } from '@/composables/useIsTouchDevice'
 import AppIcon, { type IconName } from '@/components/AppIcon.vue'
 
 /**
@@ -46,6 +47,8 @@ const BRUSH_SIZE_RATIO = 0.05
 const BRUSH_SIZE_MIN = 2
 
 const activeTool = ref<EditTool>('wand')
+/** 觸控裝置看不到滑過才出現的按鈕說明，改把目前工具的用法直接寫在畫面上 */
+const isTouchDevice = useIsTouchDevice()
 const brushSize = ref(
   Math.max(
     BRUSH_SIZE_MIN,
@@ -115,6 +118,9 @@ function handleRedo(): void {
         >
           <AppIcon :name="tool.icon" />{{ t(`manualEdit.tools.${tool.value}.label`) }}
         </button>
+      </template>
+      <template v-if="isTouchDevice">
+        <span class="w-full text-xs whitespace-normal opacity-70">{{ t(`manualEdit.tools.${activeTool}.hint`) }}</span>
       </template>
     </figcaption>
 

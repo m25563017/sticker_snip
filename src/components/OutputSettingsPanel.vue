@@ -8,6 +8,7 @@ import type { EdgeQuality } from '@/lib/refineEdges'
 import BorderControls from '@/components/BorderControls.vue'
 import ShadowControls from '@/components/ShadowControls.vue'
 import BackgroundControls from '@/components/BackgroundControls.vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 /**
  * 輸出設定（需求 4.2）：檔名前綴、輸出尺寸、邊距、邊緣品質，以及白邊等輸出效果。
@@ -24,6 +25,14 @@ const MAX_PREFIX_LENGTH = 10
 const EDGE_QUALITIES: EdgeQuality[] = ['pixel', 'smooth', 'ultra']
 
 const { t } = useI18n()
+const emit = defineEmits<{
+  /** 手機版的底部面板按了關閉（電腦版的設定欄一直顯示，不會有關閉按鈕） */
+  close: []
+}>()
+
+function handleClose(): void {
+  emit('close')
+}
 const editorStore = useEditorStore()
 const settings = computed(() => editorStore.outputSettings)
 
@@ -69,7 +78,12 @@ function handleEdgeQualityChange(event: Event): void {
 
 <template>
   <aside class="output-settings-panel hand-panel flex flex-col min-h-0" :aria-label="t('outputSettings.title')">
-    <h2 class="hand-panel-title">{{ t('outputSettings.title') }}</h2>
+    <header class="output-settings-panel__title hand-panel-title">
+      <h2>{{ t('outputSettings.title') }}</h2>
+      <button type="button" class="output-settings-panel__close md:hidden" :aria-label="t('fineTune.close')" @click="handleClose">
+        <AppIcon name="close" :size="18" />
+      </button>
+    </header>
 
     <!-- 標題列固定，設定多到放不下時只捲動下面的內容 -->
     <div class="flex flex-col gap-3 min-h-0 overflow-y-auto p-3">
@@ -127,6 +141,20 @@ function handleEdgeQualityChange(event: Event): void {
 
 <style scoped>
 .output-settings-panel {
+  .output-settings-panel__title {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  /* 疊在標題列右側，標題文字維持置中 */
+  .output-settings-panel__close {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    display: flex;
+    transform: translateY(-50%);
+  }
+
   /* 標籤、控制項、數值三欄對齊；select 與文字框跨過數值欄 */
   .output-settings-panel__row {
     display: grid;

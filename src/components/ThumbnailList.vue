@@ -25,18 +25,20 @@ function handleDelete(id: number): void {
 
 <template>
   <aside class="thumbnail-list hand-panel flex flex-col min-h-0">
-    <h2 class="hand-panel-title">{{ t('thumbnails.title', { count: editorStore.selectionCount }) }}</h2>
+    <!-- 手機版空間有限，橫條上不放標題列（張數在底部按鈕上看得到） -->
+    <h2 class="hand-panel-title max-md:hidden">{{ t('thumbnails.title', { count: editorStore.selectionCount }) }}</h2>
 
-    <div class="hand-dots flex flex-col flex-1 gap-2 min-h-0 overflow-y-auto p-2">
+    <!-- 電腦：直向清單；手機：左右滑動的橫條 -->
+    <div class="hand-dots flex flex-col flex-1 gap-2 min-h-0 overflow-y-auto p-2 max-md:flex-row max-md:overflow-x-auto max-md:overflow-y-hidden">
       <template v-if="editorStore.selectionCount === 0">
         <p class="thumbnail-list__note text-sm">{{ t('thumbnails.empty') }}</p>
       </template>
       <template v-else>
-        <!-- 右鍵刪除沒有任何視覺線索，不提示的話使用者不會知道 -->
-        <p class="thumbnail-list__note text-xs">{{ t('thumbnails.rightClickHint') }}</p>
+        <!-- 選取、刪除的方式沒有其他視覺線索，不提示的話使用者不容易發現 -->
+        <p class="thumbnail-list__note text-xs max-md:hidden">{{ t('thumbnails.selectHint') }}</p>
       </template>
 
-      <ul class="flex flex-col gap-2">
+      <ul class="flex flex-col gap-2 max-md:flex-row">
         <!-- key 用穩定的 id，畫面編號用 index：刪除時編號遞補，但 Vue 仍認得每一張是誰 -->
         <template v-for="(selection, index) in editorStore.selections" :key="selection.id">
           <li
@@ -66,9 +68,10 @@ function handleDelete(id: number): void {
             <button
               type="button"
               class="hand-button justify-center text-sm"
+              :aria-label="t('common.delete')"
               @click.stop="handleDelete(selection.id)"
             >
-              <AppIcon name="trash" :size="14" />{{ t('common.delete') }}
+              <AppIcon name="trash" :size="14" /><span class="max-md:hidden">{{ t('common.delete') }}</span>
             </button>
           </li>
         </template>
@@ -112,6 +115,20 @@ function handleDelete(id: number): void {
 
   .thumbnail-list__preview {
     height: 120px;
+  }
+
+  /* 手機橫條：每張固定寬度、縮圖矮一點，畫布才有足夠的高度 */
+  @media (max-width: 767px) {
+    .thumbnail-list__item {
+      flex-shrink: 0;
+      width: 88px;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .thumbnail-list__preview {
+      height: 56px;
+    }
   }
 }
 </style>

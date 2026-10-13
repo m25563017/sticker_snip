@@ -14,10 +14,19 @@ import {
 } from '@/lib/selectionShape'
 import type { Bounds, Point, Selection } from '@/types/selection'
 
-/** 拖曳小於這個「螢幕像素」就當成點擊。用螢幕像素而非原圖像素，手感才不會隨縮放比例改變 */
-const MIN_DRAG_DISPLAY_SIZE = 5
-/** 游標離控制點多近就算點到（畫面 px），比控制點本身大一點，比較好點 */
-const HANDLE_HIT_TOLERANCE = HANDLE_SIZE
+/**
+ * 拖曳小於這個「螢幕像素」就當成點擊。用螢幕像素而非原圖像素，手感才不會隨縮放比例改變。
+ * 手指點一下本來就會滑動幾 px，門檻要比滑鼠大，否則想點選範圍卻畫出一個小框。
+ */
+const MIN_DRAG_DISPLAY_SIZE = { mouse: 5, touch: 12 }
+/**
+ * 離控制點多近就算點到（畫面 px），比控制點本身大一點比較好點。
+ * 手指比游標粗得多，而且會擋住控制點，觸控時放大到約一個指尖的半徑。
+ */
+const HANDLE_HIT_TOLERANCE = { mouse: HANDLE_SIZE, touch: 20 }
+
+type PointerKind = keyof typeof MIN_DRAG_DISPLAY_SIZE
+const pointerKind = (event: PointerEvent): PointerKind => (event.pointerType === 'touch' ? 'touch' : 'mouse')
 /** 套索每移動這麼多畫面 px 才記一個點：滑鼠事件很密集，全部記下來一筆就會有上千個點 */
 const LASSO_POINT_SPACING = 3
 
@@ -54,7 +63,9 @@ export function useCanvasInteraction({ overlayRef, transform, onChange }: Option
   /** 沒在拖曳時，依游標是否在控制點上切換樣式 */
   const hoverCursor = ref('crosshair')
 
-  const minSourceSize = computed(() => MIN_DRAG_DISPLAY_SIZE / transform.value.scale)
+  /** 最近一次操作用的是手指還是滑鼠（觸控筆當成滑鼠，它跟滑鼠一樣精準） */
+  let lastPointerKind: PointerKind = 'mouse'
+  const minSourceSize = () => MIN_DRAG_DISPLAY_SIZE[lastPointerKind] / transform.value.scale
 
   const activeSelection = computed(() =>
     editorStore.selections.find((item) => item.id === editorStore.activeSelectionId),
@@ -100,7 +111,7 @@ export function useCanvasInteraction({ overlayRef, transform, onChange }: Option
     if (!activeResizable.value) return null
     const displayPoint = sourceToDisplay(sourcePoint, transform.value)
     const displayBounds = boundsToDisplay(activeResizable.value.bounds, transform.value)
-    return hitTestHandle(displayBounds, displayPoint, HANDLE_HIT_TOLERANCE)
+    return hitTestHandle(displayBounds, displayPoint, HANDLE_HIT_TOLERANCE[lastPointerKind])
   }
 
   /** 點擊選取：點到的範圍（依形狀判斷，不只看外框）；點在空白處則取消選取 */
@@ -118,6 +129,7 @@ export function useCanvasInteraction({ overlayRef, transform, onChange }: Option
   function handlePointerDown(event: PointerEvent): void {
     // 只接受左鍵，避免右鍵開選單時意外開始框選
     if (event.button !== 0) return
+    lastPointerKind = pointerKind(event)
     // 捕捉指標：之後就算滑鼠移出 canvas，move/up 事件仍會送到這裡，不會「放開了卻沒收到」
     overlayRef.value?.setPointerCapture(event.pointerId)
     const point = eventToSourcePoint(event)
@@ -163,7 +175,7 @@ export function useCanvasInteraction({ overlayRef, transform, onChange }: Option
     } else {
       const resized = resizeBounds(active.original, active.handle, point)
       // 縮到比門檻小就停在上一個合法的大小，不讓框消失
-      if (!isRectTooSmall(resized, minSourceSize.value)) active.current = resized
+      if (!isRectTooSmall(resized, minSourceSize())) active.current = resized
     }
     onChange()
   }
@@ -198,7 +210,7 @@ export function useCanvasInteraction({ overlayRef, transform, onChange }: Option
     if (active.kind === 'lasso') {
       const points = [...active.points, point]
       // 點太少或畫得太小就當成點擊；不必檢查有沒有畫回起點，之後一律自動以直線封閉
-      if (points.length < 3 || isRectTooSmall(pointsBounds(points), minSourceSize.value)) {
+      if (points.length < 3 || isRectTooSmall(pointsBounds(points), minSourceSize())) {
         selectAt(point)
         return
       }
@@ -207,7 +219,7 @@ export function useCanvasInteraction({ overlayRef, transform, onChange }: Option
     }
 
     const bounds = rectFromPoints(active.start, point)
-    if (isRectTooSmall(bounds, minSourceSize.value)) {
+    if (isRectTooSmall(bounds, minSourceSize())) {
       selectAt(point)
       return
     }
@@ -224,8 +236,12 @@ export function useCanvasInteraction({ overlayRef, transform, onChange }: Option
    * 右鍵：拖曳到一半時取消這次操作；沒在拖曳時刪除目前高亮的範圍。
    * 用 contextmenu 事件而非 pointerdown：左鍵按住拖曳時再按右鍵，
    * 瀏覽器不會再送一次 pointerdown（同一支滑鼠已經是「按下」狀態），只有 contextmenu 一定收得到。
+   *
+   * 觸控時不處理：Android 上「長按」也會送出 contextmenu，使用者只是手指停久一點，框就被刪掉了。
+   * 觸控裝置改用畫面上的刪除按鈕。
    */
   function handleContextMenu(): void {
+    if (lastPointerKind === 'touch') return
     if (interaction.value) {
       handlePointerCancel()
       return

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useEventListener, useMediaQuery } from '@vueuse/core'
+import { useEventListener } from '@vueuse/core'
 import { useEditorStore } from '@/stores/editor'
 import { useUndoHistory } from '@/composables/useUndoHistory'
 import { useDebouncedDraft } from '@/composables/useDebouncedDraft'
+import { useIsTouchDevice } from '@/composables/useIsTouchDevice'
 import { cropSelection } from '@/lib/cropSelection'
 import type { PixelBuffer } from '@/lib/pixelBuffer'
 import { FIT_VIEW, type ZoomView } from '@/lib/zoomView'
@@ -87,8 +88,8 @@ function handleRedo(): void {
 /** 原圖和結果共用同一份視角：放大看某個角落時，兩邊停在同一個位置方便對照 */
 const view = ref<ZoomView>(FIT_VIEW)
 const zoomPercent = computed(() => Math.round(view.value.scale * 100))
-/** 主要用手指操作的裝置（手機、平板）：提示改成兩指手勢，滾輪和空白鍵對它們沒有意義 */
-const isTouchDevice = useMediaQuery('(pointer: coarse)')
+/** 觸控裝置的提示改成兩指手勢，滾輪和空白鍵對它們沒有意義 */
+const isTouchDevice = useIsTouchDevice()
 
 function handleFitView(): void {
   view.value = FIT_VIEW
