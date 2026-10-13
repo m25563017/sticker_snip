@@ -1,0 +1,54 @@
+# 部署到 GitHub Pages：每次 push 到 main，自動測試、建置並發佈 dist/
+# 第一次使用前，到 repo 的 Settings → Pages → Source 選「GitHub Actions」
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # 也可以在 Actions 分頁手動按「Run workflow」重新部署
+  workflow_dispatch:
+
+# 發佈到 Pages 需要的權限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 連續 push 時只保留最新一次部署，舊的還沒跑完就取消
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # npm ci 依 package-lock.json 安裝，版本和本機完全一致
+      - run: npm ci
+
+      # 測試沒過就不部署，避免把壞掉的版本發佈出去
+      - run: npm test
+
+      # 字型子集已經 commit 在 repo 裡，建置時不需要再下載字型
+      - run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
