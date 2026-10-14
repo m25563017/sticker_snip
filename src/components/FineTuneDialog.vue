@@ -208,7 +208,7 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
 
           <!-- ======== 原圖（只供對照、不可編輯）與去背結果 ======== -->
           <div class="fine-tune-dialog__compare">
-            <figure class="fine-tune-dialog__figure" :class="{ 'max-md:hidden': mobilePane !== 'original' }">
+            <figure class="fine-tune-dialog__figure" :class="{ 'fine-tune-dialog__figure--inactive': mobilePane !== 'original' }">
               <!--
                 原圖不接受任何點擊：所有會改變結果的操作都集中在右邊的去背結果上，
                 才都會記在同一份歷史紀錄裡，復原、重做都退得回來
@@ -224,7 +224,7 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
             </figure>
             <ManualEditPanel
               class="fine-tune-dialog__figure"
-              :class="{ 'max-md:hidden': mobilePane !== 'result' }"
+              :class="{ 'fine-tune-dialog__figure--inactive': mobilePane !== 'result' }"
               :selection="props.selection"
               :preview="props.preview"
               v-model:view="view"
@@ -363,6 +363,14 @@ useEventListener(document, 'keydown', (event: KeyboardEvent) => {
 
     .fine-tune-dialog__compare {
       grid-template-columns: minmax(0, 1fr);
+    }
+
+    /*
+     * 沒被選到的那張藏起來。不能用 Tailwind 的 max-md:hidden：
+     * 上面 .fine-tune-dialog__figure 的 display: grid 是元件自己的樣式，權重比工具 class 高，會把隱藏蓋掉
+     */
+    .fine-tune-dialog__figure--inactive {
+      display: none;
     }
 
     .fine-tune-dialog__image {

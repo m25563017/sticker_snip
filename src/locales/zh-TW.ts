@@ -36,8 +36,8 @@ export default {
     drop: '拖曳合成圖到這裡',
     browse: '或點擊選擇檔案',
     tagline: '一張合成圖、多張貼紙、單一底色',
-    copyrightNotice: '請只處理你有權使用的圖片。',
-    copyrightLink: '了解素材版權',
+    copyrightNotice: '圖片之著作權屬原權利人所有，使用前請確認授權範圍。',
+    copyrightLink: '版權聲明',
     invalidType: {
       title: '檔案格式錯誤',
       message: '請上傳圖片檔案（PNG、JPG 等），目前選到的不是圖片。',
@@ -160,25 +160,45 @@ export default {
         title: '預覽與微調',
         body: '按「預覽結果」看每一張去背後的樣子。沒去乾淨的點一下進入微調：魔術棒去掉同色區塊、橡皮擦擦掉殘留、保留筆刷救回被誤刪的地方。',
       },
-      export: {
+      inApp: {
+    title: '請用瀏覽器開啟',
+    body: '你正在 App 的內建瀏覽器裡（例如 LINE、Facebook、Instagram），這裡可能無法上傳圖片或下載檔案。請改用 Safari 或 Chrome 開啟。',
+    open: '用瀏覽器開啟',
+    copyHint: '按鈕沒有反應的話，複製網址貼到瀏覽器：',
+    copy: '複製',
+    copied: '已複製',
+    manualHint: '也可以點畫面角落的「⋯」選單，選擇「在瀏覽器中開啟」。',
+    continue: '仍要在這裡使用',
+  },
+  export: {
         title: '設定並下載',
         body: '在右側的輸出設定調整尺寸、邊距、白邊、陰影，按「下載」取得 PNG 或 zip。',
         bodyTouch: '點下方的「輸出設定」調整尺寸、邊距、白邊、陰影，按「下載」取得 PNG 或 zip。',
       },
     },
     stepOf: '第 {current} 步，共 {total} 步',
+    environmentNotice: '建議使用電腦操作，體驗最完整。手機請用 Safari、Chrome 等瀏覽器開啟，避免在 LINE、Facebook 等 App 的內建瀏覽器中使用。',
     skip: '略過',
     previous: '上一步',
     next: '下一步',
     start: '開始使用',
     about: {
+      environment: {
+        title: '使用環境',
+        body: '本工具以電腦瀏覽器操作為最佳體驗，框選與微調等精細操作在大螢幕與滑鼠上最順手。手機亦可使用，請以 Safari、Chrome 等瀏覽器開啟；App 內建瀏覽器（例如 LINE、Facebook、Instagram）可能無法上傳圖片或下載檔案。',
+      },
       privacy: {
         title: '隱私',
         body: '你的圖片不會上傳到任何地方，所有處理都在你的瀏覽器裡完成，網站也禁止發出任何網路請求。瀏覽器只會記住你的偏好設定（語言、預覽背景、輸出設定），不包含圖片。',
       },
       copyright: {
-        title: '素材版權',
-        body: '請只處理你有權使用的圖片。從 Canva 等素材平台取得的圖片通常有授權限制，例如不得單獨轉售、再散布，或做成貼圖、商品販售。使用前請確認原平台的授權條款，因素材使用產生的責任由使用者自行負擔。',
+        title: '版權聲明',
+        points: [
+          '本工具僅提供圖片裁切與去背的技術功能，不提供、不授權任何圖片素材，亦不因使用者的處理而取得或移轉任何權利。',
+          '使用者應自行確認所處理的圖片已取得著作權人的合法授權，或屬著作權法所定合理使用的範圍。',
+          '部分素材平台（例如 Canva）的授權條款，可能禁止將素材單獨擷取、轉售、再散布，或製作為貼圖、商品販售；使用前請詳閱原平台的授權條款。',
+          '因處理、使用或散布圖片所生的任何侵權或法律責任，概由使用者自行負擔，與本工具及作者無涉。',
+        ],
       },
       disclaimer: {
         title: '免責聲明',
@@ -190,6 +210,16 @@ export default {
         link: '查看授權全文',
       },
     },
+  },
+  inApp: {
+    title: '請用瀏覽器開啟',
+    body: '你正在 App 的內建瀏覽器裡（例如 LINE、Facebook、Instagram），這裡可能無法上傳圖片或下載檔案。請改用 Safari 或 Chrome 開啟。',
+    open: '用瀏覽器開啟',
+    copyHint: '按鈕沒有反應的話，複製網址貼到瀏覽器：',
+    copy: '複製',
+    copied: '已複製',
+    manualHint: '也可以點畫面角落的「⋯」選單，選擇「在瀏覽器中開啟」。',
+    continue: '仍要在這裡使用',
   },
   export: {
     empty: {

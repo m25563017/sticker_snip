@@ -37,8 +37,8 @@ export default {
     drop: 'Drop your sticker sheet here',
     browse: 'or click to choose a file',
     tagline: 'One image, many stickers, one flat background color',
-    copyrightNotice: 'Only process images you have the right to use.',
-    copyrightLink: 'About copyright',
+    copyrightNotice: 'Images remain the property of their copyright holders. Check the license scope before use.',
+    copyrightLink: 'Copyright notice',
     invalidType: {
       title: 'Unsupported file',
       message: 'Please upload an image file (PNG, JPG, etc.). The selected file is not an image.',
@@ -164,25 +164,45 @@ export default {
         title: 'Preview and fine-tune',
         body: 'Press Preview to see each cutout. Click one that needs fixing: the magic wand removes same-colored areas, the eraser wipes leftovers, and Restore brings back parts removed by mistake.',
       },
-      export: {
+      inApp: {
+    title: 'Open in your browser',
+    body: 'You are in an app\'s built-in browser (such as LINE, Facebook or Instagram), where uploading images or downloading files may not work. Please open this page in Safari or Chrome.',
+    open: 'Open in browser',
+    copyHint: 'If the button does nothing, copy the link and paste it into your browser:',
+    copy: 'Copy',
+    copied: 'Copied',
+    manualHint: 'You can also tap the ⋯ menu in a corner of the screen and choose Open in browser.',
+    continue: 'Continue here anyway',
+  },
+  export: {
         title: 'Set up and download',
         body: 'Adjust size, padding, border and shadow in the settings on the right, then press Download to get PNGs or a zip.',
         bodyTouch: 'Tap Settings at the bottom to adjust size, padding, border and shadow, then press Download to get PNGs or a zip.',
       },
     },
     stepOf: 'Step {current} of {total}',
+    environmentNotice: 'Best experienced on a computer. On a phone, open this page in a browser such as Safari or Chrome rather than the built-in browser of apps like LINE or Facebook.',
     skip: 'Skip',
     previous: 'Back',
     next: 'Next',
     start: 'Get started',
     about: {
+      environment: {
+        title: 'Supported environment',
+        body: 'This tool works best in a desktop browser, where precise tasks such as boxing and fine-tuning are easiest with a large screen and a mouse. Phones are supported in browsers such as Safari or Chrome. The built-in browsers of apps such as LINE, Facebook or Instagram may not be able to upload images or download files.',
+      },
       privacy: {
         title: 'Privacy',
         body: 'Your images are never uploaded. Everything is processed in your browser, and the site is blocked from making any network requests. Only your preferences (language, preview background, output settings) are saved in your browser, never your images.',
       },
       copyright: {
-        title: 'Copyright',
-        body: 'Only process images you have the right to use. Assets from platforms such as Canva usually come with license restrictions: for example, they may not be resold or redistributed on their own, or sold as stickers or merchandise. Check the original license before use. You are responsible for how you use the assets.',
+        title: 'Copyright notice',
+        points: [
+          'This tool only provides technical functions for cropping and removing image backgrounds. It does not provide or license any image assets, and no rights are acquired or transferred through processing.',
+          'Users are responsible for ensuring that the images they process are lawfully licensed by the copyright holder or fall within fair use under applicable copyright law.',
+          'The license terms of some asset platforms (such as Canva) may prohibit extracting assets on their own, reselling or redistributing them, or selling them as stickers or merchandise. Please review the original license terms before use.',
+          'Users bear sole responsibility for any infringement or legal liability arising from processing, using or distributing images. The tool and its author assume no liability.',
+        ],
       },
       disclaimer: {
         title: 'Disclaimer',
@@ -194,6 +214,16 @@ export default {
         link: 'View full licenses',
       },
     },
+  },
+  inApp: {
+    title: 'Open in your browser',
+    body: 'You are in an app\'s built-in browser (such as LINE, Facebook or Instagram), where uploading images or downloading files may not work. Please open this page in Safari or Chrome.',
+    open: 'Open in browser',
+    copyHint: 'If the button does nothing, copy the link and paste it into your browser:',
+    copy: 'Copy',
+    copied: 'Copied',
+    manualHint: 'You can also tap the ⋯ menu in a corner of the screen and choose Open in browser.',
+    continue: 'Continue here anyway',
   },
   export: {
     empty: {

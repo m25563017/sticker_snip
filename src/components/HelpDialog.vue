@@ -10,7 +10,7 @@ import AppIcon, { type IconName } from '@/components/AppIcon.vue'
  * 使用說明：「怎麼使用」是 4 步的步驟卡片，「關於」是隱私、素材版權、免責聲明與授權。
  * 文字都在翻譯檔 help.*；手機和電腦操作不同的步驟另有 bodyTouch。
  */
-const { t } = useI18n()
+const { t, tm, rt } = useI18n()
 const help = useHelpDialog()
 const isTouchDevice = useIsTouchDevice()
 
@@ -24,7 +24,7 @@ const STEPS = [
   { key: 'export', icon: 'download', hasTouchVariant: true },
 ] as const satisfies readonly { key: string; icon: IconName; hasTouchVariant: boolean }[]
 
-const ABOUT_SECTIONS = ['privacy', 'copyright', 'disclaimer'] as const
+const ABOUT_SECTIONS = ['environment', 'privacy', 'copyright', 'disclaimer'] as const
 
 const stepIndex = ref(0)
 const step = computed(() => STEPS[stepIndex.value])
@@ -69,6 +69,8 @@ function handleNext(): void {
 
     <!-- ======== 怎麼使用：步驟卡片 ======== -->
     <template v-if="help.tab.value === 'guide'">
+      <!-- 使用環境提醒：每次打開都看得到，放在步驟之前 -->
+      <p class="help-dialog__notice text-sm">{{ t('help.environmentNotice') }}</p>
       <section class="help-dialog__step" aria-live="polite">
         <span class="help-dialog__icon">
           <AppIcon :name="step.icon" :size="40" />
@@ -95,7 +97,17 @@ function handleNext(): void {
       <template v-for="section in ABOUT_SECTIONS" :key="section">
         <section class="flex flex-col gap-1">
           <h3 class="text-lg">{{ t(`help.about.${section}.title`) }}</h3>
-          <p class="help-dialog__text">{{ t(`help.about.${section}.body`) }}</p>
+          <!-- 版權聲明是條款式的編號清單，其餘是一段文字 -->
+          <template v-if="section === 'copyright'">
+            <ol class="help-dialog__terms help-dialog__text">
+              <template v-for="(point, index) in tm('help.about.copyright.points')" :key="index">
+                <li>{{ rt(point) }}</li>
+              </template>
+            </ol>
+          </template>
+          <template v-else>
+            <p class="help-dialog__text">{{ t(`help.about.${section}.body`) }}</p>
+          </template>
         </section>
       </template>
       <section class="flex flex-col gap-1">
@@ -152,6 +164,12 @@ function handleNext(): void {
   max-width: 32em;
 }
 
+/* 和縮圖列表的提示一樣，白底虛線框像一張便條 */
+.help-dialog__notice {
+  padding: 6px 10px;
+  border: 2px dashed var(--color-ink);
+}
+
 .help-dialog__dot {
   width: 10px;
   height: 10px;
@@ -160,6 +178,15 @@ function handleNext(): void {
 
   &.help-dialog__dot--active {
     background-color: var(--color-ink);
+  }
+}
+
+.help-dialog__terms {
+  padding-left: 1.5em;
+  list-style: decimal;
+
+  li + li {
+    margin-top: 4px;
   }
 }
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useNotify } from '@pieda/core'
 import { useI18n } from 'vue-i18n'
 import { useEditorStore } from '@/stores/editor'
@@ -9,6 +9,8 @@ import LocaleToggle from '@/components/LocaleToggle.vue'
 import HandDrawnFilter from '@/components/HandDrawnFilter.vue'
 import HelpDialog from '@/components/HelpDialog.vue'
 import { useHelpDialog } from '@/composables/useHelpDialog'
+import { useInAppBrowser } from '@/composables/useInAppBrowser'
+import OpenInBrowserDialog from '@/components/OpenInBrowserDialog.vue'
 import EditorCanvas from '@/components/EditorCanvas.vue'
 import ThumbnailList from '@/components/ThumbnailList.vue'
 import ReviewGrid from '@/components/ReviewGrid.vue'
@@ -30,7 +32,8 @@ const { previews } = useSelectionPreviews()
 const outputSettingsSheet = useOutputSettingsSheet()
 /** 使用說明：第一次打開網站時自動顯示教學，之後從頂列的 ? 打開 */
 const help = useHelpDialog()
-onMounted(help.openGuideOnFirstVisit)
+/** 從 LINE、Facebook 等 App 開啟時，先引導改用瀏覽器；處理完才顯示第一次使用的教學 */
+const inAppBrowser = useInAppBrowser(help.openGuideOnFirstVisit)
 
 function handleOpenHelp(): void {
   help.open('guide')
@@ -149,6 +152,9 @@ async function handleReupload(): Promise<void> {
 
     <template v-if="help.isOpen.value">
       <HelpDialog />
+    </template>
+    <template v-if="inAppBrowser.isNoticeOpen.value">
+      <OpenInBrowserDialog :platform="inAppBrowser.platform" @close="inAppBrowser.closeNotice" />
     </template>
 
     <!-- 圖示的手繪抖動濾鏡，全站共用一份 -->
